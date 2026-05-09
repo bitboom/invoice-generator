@@ -121,3 +121,15 @@ describe('shared logo, theme, and template behavior', () => {
     assert.ok(templatesScriptIndex < appScriptIndex, 'templates must load before app.jsx');
   });
 });
+
+describe('classic template visual refinements', () => {
+  it('keeps nine line-item body rows by filling blank rows', () => {
+    assert.match(templates, /Math\.max\(0, 9 - items\.length\)/);
+  });
+
+  it('matches the requested classic rules and item indent styling', () => {
+    assert.match(index, /\.tpl-classic \.totals \.grand\{[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
+    assert.match(index, /\.tpl-classic \.items tbody td:first-child\{padding-left:8px\}/);
+    assert.match(index, /\.tpl-classic \.sidebar-bank \.bk-label\{[\s\S]*width:132px;[\s\S]*\}/);
+  });
+});

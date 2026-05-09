@@ -91,7 +91,7 @@ function BankBlock({ data, compact = false }) {
 // ───────────────────────────────────────────────────────
 function ClassicTemplate({ data, totals }) {
   const { items, supply, tax, total } = totals;
-  const emptyCount = Math.max(0, 3);
+  const emptyCount = Math.max(0, 9 - items.length);
 
   return (
     <div className="invoice tpl-classic" style={themeVars(data)}>
