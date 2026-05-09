@@ -129,6 +129,7 @@ describe('classic template visual refinements', () => {
 
   it('matches the requested classic rules and item indent styling', () => {
     assert.match(index, /\.tpl-classic \.totals \.grand\{[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
+    assert.match(index, /\.tpl-classic \.items tbody td\{[\s\S]*height:38px;[\s\S]*padding:0;[\s\S]*vertical-align:middle;[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.items tbody td:first-child\{padding-left:8px\}/);
     assert.match(index, /\.tpl-classic \.items tbody tr:last-child td\{[\s\S]*background:#fff;[\s\S]*border-bottom:0;[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.total-rule\{[\s\S]*margin-top:0;[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
