@@ -130,6 +130,7 @@ describe('classic template visual refinements', () => {
   it('matches the requested classic rules and item indent styling', () => {
     assert.match(index, /\.tpl-classic \.totals \.grand\{[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.items tbody td:first-child\{padding-left:8px\}/);
+    assert.match(index, /\.tpl-classic \.items tbody tr:last-child td\{[\s\S]*background:#fff;[\s\S]*border-bottom:0;[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.sidebar-bank \.bk-label\{[\s\S]*width:132px;[\s\S]*\}/);
   });
 });
