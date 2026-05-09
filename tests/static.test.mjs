@@ -131,6 +131,7 @@ describe('classic template visual refinements', () => {
     assert.match(index, /\.tpl-classic \.totals \.grand\{[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.items tbody td:first-child\{padding-left:8px\}/);
     assert.match(index, /\.tpl-classic \.items tbody tr:last-child td\{[\s\S]*background:#fff;[\s\S]*border-bottom:0;[\s\S]*\}/);
+    assert.match(index, /\.tpl-classic \.total-rule\{[\s\S]*margin-top:0;[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.sidebar-bank \.bk-label\{[\s\S]*width:132px;[\s\S]*\}/);
   });
 });
