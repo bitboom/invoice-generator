@@ -32,9 +32,45 @@ const themeVars = (data) => {
   return { '--theme': theme, '--on-theme': readableOn(theme) };
 };
 
-function LogoMark({ data, className = '' }) {
+function LogoMark({ data, className = '', onDark = false }) {
+  const [processedLogo, setProcessedLogo] = React.useState(data.logoDataUrl || '');
+
+  React.useEffect(() => {
+    if (!data.logoDataUrl || !onDark) {
+      setProcessedLogo(data.logoDataUrl || '');
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] > 0) {
+          pixels[i] = 255;
+          pixels[i + 1] = 255;
+          pixels[i + 2] = 255;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+      if (!cancelled) setProcessedLogo(canvas.toDataURL('image/png'));
+    };
+    image.onerror = () => {
+      if (!cancelled) setProcessedLogo(data.logoDataUrl || '');
+    };
+    image.src = data.logoDataUrl;
+
+    return () => { cancelled = true; };
+  }, [data.logoDataUrl, onDark]);
+
   if (data.logoDataUrl) {
-    return <img className={'uploaded-logo ' + className} src={data.logoDataUrl} alt="logo" />;
+    return <img className={'uploaded-logo ' + className} src={processedLogo || data.logoDataUrl} alt="logo" />;
   }
   return <div className={'logo-fallback ' + className}>{safe(data.companyName, 'LOGO')}</div>;
 }
@@ -61,7 +97,7 @@ function ClassicTemplate({ data, totals }) {
     <div className="invoice tpl-classic" style={themeVars(data)}>
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <LogoMark data={data} />
+          <LogoMark data={data} onDark />
         </div>
         <div className="sidebar-bank">
           <div className="bk-label">입금계좌</div>
@@ -86,12 +122,8 @@ function ClassicTemplate({ data, totals }) {
         </div>
 
         <div className="info-block">
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-            <h3 className="info-head" style={{flex:1,marginRight:0}}>사업장 정보</h3>
-            <div className="seal-line">직인</div>
-          </div>
+          <h3 className="info-head">사업장 소재지</h3>
           <div className="info-grid" style={{position:'relative',paddingTop:6}}>
-            <div className="company-name">{safe(data.companyName, '상호 / 회사명')}</div>
             <div>{safe(data.address, '사업장 주소')}</div>
             <div style={{display:'flex',gap:24,marginTop:4,flexWrap:'wrap'}}>
               <span>{safe(data.phone, '전화번호')}</span>
@@ -99,10 +131,6 @@ function ClassicTemplate({ data, totals }) {
             <div style={{display:'flex',gap:24,marginTop:0,flexWrap:'wrap',alignItems:'center'}}>
               <span><b style={{fontWeight:800}}>사업자등록번호</b> {safe(data.bizNumber, '사업자등록번호')}</span>
               <span><b style={{fontWeight:800}}>이메일</b> {safe(data.email, '이메일')}</span>
-            </div>
-            <div className="stamp-box">
-              {safe(data.stampText, safe(data.companyName, '직인'))}
-              <div className="stamp-inner"></div>
             </div>
           </div>
         </div>
@@ -142,6 +170,8 @@ function ClassicTemplate({ data, totals }) {
             ))}
           </tbody>
         </table>
+
+        <div className="total-rule"></div>
 
         <div className="totals">
           <div className="tr"><span className="lab">합계</span><span className="val">{fmt(supply)}</span></div>

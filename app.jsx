@@ -196,6 +196,15 @@ function App() {
         logging: false,
         windowWidth: 794,
         windowHeight: 1123,
+        width: 794,
+        height: 1123,
+        onclone: (doc) => {
+          const frame = doc.querySelector('.invoice-frame');
+          if (frame) {
+            frame.style.transform = 'none';
+            frame.style.position = 'static';
+          }
+        },
       });
       const link = document.createElement('a');
       const fname = `invoice_${data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled'}.png`;
@@ -310,15 +319,9 @@ function App() {
               <input type="text" value={data.email} onChange={setField('email')} placeholder="이메일" />
             </div>
           </div>
-          <div className="field-row">
-            <div className="field">
-              <label>사업자등록번호</label>
-              <input type="text" value={data.bizNumber} onChange={setField('bizNumber')} placeholder="사업자등록번호" />
-            </div>
-            <div className="field">
-              <label>직인 텍스트</label>
-              <input type="text" value={data.stampText} onChange={setField('stampText')} placeholder="선택 입력" />
-            </div>
+          <div className="field">
+            <label>사업자등록번호</label>
+            <input type="text" value={data.bizNumber} onChange={setField('bizNumber')} placeholder="사업자등록번호" />
           </div>
         </div>
 
