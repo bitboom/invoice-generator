@@ -46,6 +46,7 @@ describe('privacy and repository hygiene', () => {
     for (const field of privateFields) {
       assert.match(defaults, new RegExp(`${field}: ''`), `${field} should default to an empty string`);
     }
+    assert.match(defaults, /showStamp: false/, 'stamp visibility should default off');
   });
 
   it('does not reference bundled business logo assets', () => {
@@ -123,16 +124,29 @@ describe('shared logo, theme, and template behavior', () => {
 });
 
 describe('classic template visual refinements', () => {
-  it('keeps nine line-item body rows by filling blank rows', () => {
-    assert.match(templates, /Math\.max\(0, 9 - items\.length\)/);
+  it('keeps eleven line-item body rows by filling blank rows', () => {
+    assert.match(templates, /Math\.max\(0, 11 - items\.length\)/);
   });
 
   it('matches the requested classic rules and item indent styling', () => {
     assert.match(index, /\.tpl-classic \.totals \.grand\{[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.items tbody td\{[\s\S]*height:38px;[\s\S]*padding:0;[\s\S]*vertical-align:middle;[\s\S]*\}/);
+    assert.match(index, /\.tpl-classic \.items thead th\.num\{text-align:center\}/);
+    assert.match(index, /\.tpl-classic \.items tbody td\.num\{text-align:center;/);
     assert.match(index, /\.tpl-classic \.items tbody td:first-child\{padding-left:8px\}/);
     assert.match(index, /\.tpl-classic \.items tbody tr:last-child td\{[\s\S]*background:#fff;[\s\S]*border-bottom:0;[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.total-rule\{[\s\S]*margin-top:0;[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.sidebar-bank \.bk-label\{[\s\S]*width:132px;[\s\S]*\}/);
+    assert.match(index, /\.tpl-classic \.info-block\{margin-bottom:10px\}/);
+    assert.match(index, /\.tpl-classic \.items\{[\s\S]*margin-top:2px;[\s\S]*\}/);
+  });
+
+  it('supports an optional classic stamp area without hardcoded stamp data', () => {
+    assert.match(app, /stampText: ''/);
+    assert.match(app, /showStamp: false/);
+    assert.match(app, /onClick=\{\(\) => setValue\('showStamp', !data\.showStamp\)\}/);
+    assert.match(templates, /className="classic-stamp-slot"/);
+    assert.match(templates, /data\.showStamp \? <div className="classic-stamp-mark">/);
+    assert.match(index, /\.tpl-classic \.classic-stamp-slot\{[\s\S]*min-height:66px;[\s\S]*\}/);
   });
 });

@@ -91,7 +91,7 @@ function BankBlock({ data, compact = false }) {
 // ───────────────────────────────────────────────────────
 function ClassicTemplate({ data, totals }) {
   const { items, supply, tax, total } = totals;
-  const emptyCount = Math.max(0, 9 - items.length);
+  const emptyCount = Math.max(0, 11 - items.length);
 
   return (
     <div className="invoice tpl-classic" style={themeVars(data)}>
@@ -123,19 +123,25 @@ function ClassicTemplate({ data, totals }) {
 
         <div className="info-block">
           <h3 className="info-head">사업장 소재지</h3>
-          <div className="info-grid" style={{position:'relative',paddingTop:6}}>
-            <div>{safe(data.address, '사업장 주소')}</div>
-            <div style={{display:'flex',gap:24,marginTop:4,flexWrap:'wrap'}}>
-              <span>{safe(data.phone, '전화번호')}</span>
+          <div className="info-grid classic-business-grid">
+            <div className="classic-business-copy">
+              <div>{safe(data.address, '사업장 주소')}</div>
+              <div className="classic-business-line">
+                <span>{safe(data.phone, '전화번호')}</span>
+              </div>
+              <div className="classic-business-line compact">
+                <span><b style={{fontWeight:800}}>사업자등록번호</b> {safe(data.bizNumber, '사업자등록번호')}</span>
+                <span><b style={{fontWeight:800}}>이메일</b> {safe(data.email, '이메일')}</span>
+              </div>
             </div>
-            <div style={{display:'flex',gap:24,marginTop:0,flexWrap:'wrap',alignItems:'center'}}>
-              <span><b style={{fontWeight:800}}>사업자등록번호</b> {safe(data.bizNumber, '사업자등록번호')}</span>
-              <span><b style={{fontWeight:800}}>이메일</b> {safe(data.email, '이메일')}</span>
+            <div className="classic-stamp-slot" aria-label="직인 영역">
+              <div className="classic-stamp-label">직인</div>
+              {data.showStamp ? <div className="classic-stamp-mark">{safe(data.stampText, '직인')}</div> : null}
             </div>
           </div>
         </div>
 
-        <div className="info-block" style={{marginTop:14}}>
+        <div className="info-block classic-work-block">
           <h3 className="info-head">작업내용 및 담당자</h3>
           <div className="info-grid">
             <div className="row"><span className="lab">작업명</span><span>{safe(data.workName, '작업명')}</span></div>

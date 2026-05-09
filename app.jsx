@@ -42,6 +42,7 @@ const DEFAULT_DATA = {
   logoDataUrl: '',
   themeColor: '#0a0a0a',
   stampText: '',
+  showStamp: false,
 
   workName: '',
   recipient: '',
@@ -323,6 +324,14 @@ function App() {
             <label>사업자등록번호</label>
             <input type="text" value={data.bizNumber} onChange={setField('bizNumber')} placeholder="사업자등록번호" />
           </div>
+          <div className="field">
+            <label>직인 문구</label>
+            <input type="text" value={data.stampText || ''} onChange={setField('stampText')} placeholder="직인에 들어갈 문구" />
+            <p className="help-text">직인 표시를 누르면 사업장 소재지 우측에 찍히고, 끄면 같은 자리가 빈 공간으로 출력됩니다.</p>
+          </div>
+          <button type="button" className="add-btn compact" onClick={() => setValue('showStamp', !data.showStamp)}>
+            {data.showStamp ? '직인 숨기기' : '직인 표시'}
+          </button>
         </div>
 
         {/* bank */}

@@ -570,7 +570,7 @@
     display:flex;
     align-items:flex-start;
     gap:22px;
-    margin-bottom:30px;
+    margin-bottom:28px;
   }
   .tpl-classic .title-row h1{
     font-family:'Archivo', sans-serif;
@@ -587,7 +587,7 @@
   }
   .tpl-classic .title-row .date strong{font-weight:800;display:block}
 
-  .tpl-classic .info-block{margin-bottom:18px}
+  .tpl-classic .info-block{margin-bottom:10px}
   .tpl-classic .info-head{
     font-size:13px;
     font-weight:800;
@@ -600,13 +600,63 @@
     font-size:12px;
     line-height:1.85;
   }
+  .tpl-classic .classic-business-grid{
+    position:relative;
+    padding-top:4px;
+    display:grid;
+    grid-template-columns:1fr 104px;
+    gap:18px;
+    align-items:start;
+    min-height:70px;
+  }
+  .tpl-classic .classic-business-line{
+    display:flex;
+    gap:24px;
+    margin-top:2px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .tpl-classic .classic-business-line.compact{margin-top:0}
+  .tpl-classic .classic-stamp-slot{
+    width:104px;
+    min-height:66px;
+    position:relative;
+    justify-self:end;
+  }
+  .tpl-classic .classic-stamp-label{
+    position:absolute;
+    left:0;
+    top:6px;
+    font-weight:800;
+    font-size:12px;
+  }
+  .tpl-classic .classic-stamp-mark{
+    position:absolute;
+    right:0;
+    top:14px;
+    width:58px;
+    height:58px;
+    border:3px solid #f01422;
+    color:#f01422;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    line-height:1.05;
+    font-size:13px;
+    font-weight:900;
+    letter-spacing:-0.08em;
+    word-break:keep-all;
+    opacity:.94;
+  }
   .tpl-classic .info-grid .row{display:flex;gap:14px}
   .tpl-classic .info-grid .row .lab{font-weight:800;min-width:64px}
+  .tpl-classic .classic-work-block{margin-top:4px}
   /* items table */
   .tpl-classic .items{
     width:100%;
     border-collapse:collapse;
-    margin-top:6px;
+    margin-top:2px;
     font-size:12px;
   }
   .tpl-classic .items thead th{
@@ -616,7 +666,7 @@
     border-bottom:3px solid var(--theme);
     font-size:12.5px;
   }
-  .tpl-classic .items thead th.num{text-align:right}
+  .tpl-classic .items thead th.num{text-align:center}
   .tpl-classic .items tbody td{
     height:38px;
     padding:0;
@@ -632,7 +682,7 @@
     border-bottom:0;
   }
   .tpl-classic .items tbody td:first-child{padding-left:8px}
-  .tpl-classic .items tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tpl-classic .items tbody td.num{text-align:center;font-variant-numeric:tabular-nums}
   .tpl-classic .items tbody td.empty{
     padding:0;
     height:38px;
