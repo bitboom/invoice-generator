@@ -155,16 +155,15 @@ function ClassicTemplate({ data, totals }) {
           </thead>
           <tbody>
             {items.map((it, i) => (
-              <tr key={i}>
+              <tr key={i} className={i % 2 === 1 ? 'alt' : ''}>
                 <td>{safe(it.name, '품목')}</td>
                 <td className="num">{it.unitPrice ? fmt(it.unitPrice) : ''}</td>
                 <td className="num">{it.qty || ''}</td>
                 <td className="num">{it.total ? fmt(it.total) : ''}</td>
               </tr>
             ))}
-            <tr className="spacer"><td colSpan={4}></td></tr>
             {Array.from({length: emptyCount}).map((_, i) => (
-              <tr key={'e'+i}>
+              <tr key={'e'+i} className={(items.length + i) % 2 === 1 ? 'alt' : ''}>
                 <td colSpan={4} className="empty"></td>
               </tr>
             ))}
