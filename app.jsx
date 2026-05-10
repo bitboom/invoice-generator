@@ -96,6 +96,7 @@ function App() {
   const [showIntro, setShowIntro] = useState(() => {
     try { return localStorage.getItem('invoice-intro-seen') !== 'yes'; } catch { return true; }
   });
+  const [previewOpen, setPreviewOpen] = useState(false);
   const invoiceRef = useRef(null);
   const previewRefs = useRef({});
   const exportRefs = useRef({});
@@ -301,6 +302,8 @@ function App() {
   }, [capturePng, data.date, tplId]);
 
   const TplComp = TEMPLATES.find(t => t.id === tplId).comp;
+  const miniPreviewZoom = 0.16;
+  const modalPreviewZoom = 0.6;
   const closeIntro = () => {
     try { localStorage.setItem('invoice-intro-seen', 'yes'); } catch {}
     setShowIntro(false);
@@ -529,6 +532,20 @@ function App() {
         <button className="btn btn-primary" onClick={download} disabled={busy}>
           {busy ? '저장 중...' : 'PNG 저장'}
         </button>
+        <div className="save-preview-card">
+          <div className="save-preview-head">
+            <span>저장 전 미리보기</span>
+            <button type="button" className="preview-zoom-btn" onClick={() => setPreviewOpen(true)} aria-label="미리보기 크게 보기">🔍 크게</button>
+          </div>
+          <button type="button" className="save-preview-thumb" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 크게 보기">
+            <div className="mini-preview-shell" style={{width: 794 * miniPreviewZoom, height: 1123 * miniPreviewZoom}}>
+              <div className="invoice-frame mini-preview-frame" style={{ transform: `scale(${miniPreviewZoom})`, position:'absolute', top:0, left:0 }}>
+                <TplComp data={data} totals={totals} />
+              </div>
+            </div>
+          </button>
+          <p>수정하면 이 미리보기도 바로 바뀝니다.</p>
+        </div>
       </div>
 
       {/* ───────── Stage (preview) ───────── */}
@@ -576,6 +593,27 @@ function App() {
           return <div key={t.id} ref={el => { exportRefs.current[t.id] = el; }} className="export-frame"><ExportComp data={data} totals={totals} /></div>;
         })}
       </div>
+
+      {previewOpen && (
+        <div className="preview-modal" role="dialog" aria-modal="true" aria-label="저장 전 큰 미리보기" onClick={() => setPreviewOpen(false)}>
+          <section className="preview-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="preview-modal-head">
+              <div>
+                <b>저장 전 큰 미리보기</b>
+                <span>현재 입력값이 실시간으로 반영됩니다.</span>
+              </div>
+              <button type="button" className="preview-close" onClick={() => setPreviewOpen(false)} aria-label="닫기">×</button>
+            </div>
+            <div className="preview-modal-scroll">
+              <div className="modal-preview-shell" style={{width: 794 * modalPreviewZoom, height: 1123 * modalPreviewZoom}}>
+                <div className="invoice-frame modal-preview-frame" style={{ transform: `scale(${modalPreviewZoom})`, position:'absolute', top:0, left:0 }}>
+                  <TplComp data={data} totals={totals} />
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       {toast && (
         <div className="toast" style={toast.type === 'err' ? {background:'#dc2626'} : null}>

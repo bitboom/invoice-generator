@@ -124,6 +124,12 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /Classic 미리보기 · A4 PNG/);
     assert.match(app, /오른쪽 미리보기가 그대로 PNG로 저장됩니다\./);
     assert.match(app, /PNG 저장/);
+    assert.match(app, /저장 전 미리보기/);
+    assert.match(app, /미리보기 크게 보기/);
+    assert.match(app, /수정하면 이 미리보기도 바로 바뀝니다\./);
+    assert.match(index, /\.save-preview-card/);
+    assert.match(index, /\.preview-modal/);
+    assert.match(index, /\.mini-preview-frame/);
     assert.doesNotMatch(app, /window\.print\(\)/, 'print button should not be confused with PNG saving');
     assert.doesNotMatch(app, /4개 디자인 비교 PNG를 저장했습니다\./);
   });
