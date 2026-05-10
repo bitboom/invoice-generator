@@ -75,6 +75,15 @@ function LogoMark({ data, className = '', onDark = false }) {
   return <div className={'logo-fallback ' + className}>{safe(data.companyName, 'LOGO')}</div>;
 }
 
+
+function StampMark({ data, className = '' }) {
+  if (!data.showStamp) return null;
+  if (data.stampImageDataUrl) {
+    return <img className={'stamp-image ' + className} src={data.stampImageDataUrl} alt="stamp" />;
+  }
+  return <div className={'stamp-text-mark ' + className}>{safe(data.stampText, '직인')}</div>;
+}
+
 function BankBlock({ data, compact = false }) {
   return (
     <div className={compact ? 'bank compact-bank' : 'bank'}>
@@ -136,7 +145,7 @@ function ClassicTemplate({ data, totals }) {
             </div>
             <div className="classic-stamp-slot" aria-label="직인 영역">
               <div className="classic-stamp-label">직인</div>
-              {data.showStamp ? <div className="classic-stamp-mark">{safe(data.stampText, '직인')}</div> : null}
+              <StampMark data={data} className="classic-stamp-mark" />
             </div>
           </div>
         </div>
@@ -227,6 +236,8 @@ function InvoifyTemplate1({ data, totals }) {
           <div className="row">발행일로부터 15일</div>
         </div>
       </div>
+
+      <StampMark data={data} className="minimal-stamp" />
 
       <div className="work">
         <div className="col-head">작업 내용</div>
@@ -337,6 +348,8 @@ function InvoifyTemplate2({ data, totals }) {
           </tbody>
         </table>
 
+        <StampMark data={data} className="bold-stamp" />
+
         <div className="bottom" style={{gridTemplateColumns:'1fr 360px'}}>
           <BankBlock data={data} />
           <div className="totals-card">
@@ -422,7 +435,8 @@ function InvoifyTemplate3({ data, totals }) {
         </div>
         <div className="inv3-signature">
           <span>서명</span>
-          <strong>{safe(data.stampText || data.companyName, '서명')}</strong>
+          <StampMark data={data} className="inv3-signature-stamp" />
+          {!data.showStamp ? <strong>{safe(data.stampText || data.companyName, '서명')}</strong> : null}
         </div>
       </footer>
     </div>

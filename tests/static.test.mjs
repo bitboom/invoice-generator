@@ -38,6 +38,7 @@ describe('privacy and repository hygiene', () => {
       'depositor',
       'logoDataUrl',
       'stampText',
+      'stampImageDataUrl',
       'workName',
       'recipient',
       'contact',
@@ -90,6 +91,7 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(templates, /function InvoifyTemplate3/);
     assert.match(index, /\.tpl-invoify3\{/);
     assert.match(index, /\.tpl-invoify3 \.inv3-lower\{position:absolute;left:58px;right:58px;bottom:160px/);
+    assert.match(index, /\.tpl-minimal \.bottom\{[\s\S]*bottom:192px;[\s\S]*\}/);
     assert.match(index, /\.tpl-invoify3 \.inv3-footer\{position:absolute;left:58px;right:58px;bottom:42px/);
   });
 
@@ -98,6 +100,7 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /file\.type !== 'image\/png'/, 'runtime validation should reject non-PNG images');
     assert.match(app, /readAsDataURL\(file\)/, 'logo upload should preserve PNG alpha by storing the original Data URL');
     assert.match(app, /logoDataUrl: reader\.result/, 'uploaded logo should be stored in app state/localStorage');
+    assert.match(app, /stampImageDataUrl: reader\.result/, 'uploaded stamp should be stored in app state/localStorage');
     assert.match(templates, /function LogoMark\(/, 'templates should share a single logo renderer');
     assert.equal((templates.match(/<LogoMark data=\{data\}/g) || []).length, 4, 'each template should render the same uploaded logo');
   });
@@ -121,11 +124,13 @@ describe('shared logo, theme, and template behavior', () => {
     assert.equal((templates.match(/style=\{themeVars\(data\)\}/g) || []).length, 4, 'each template should receive the shared theme variables');
   });
 
-  it('updates the selected template through React state rather than per-template data forks', () => {
+  it('shows all four templates after input and uses selection only as the current PNG target', () => {
     assert.match(app, /const \[tplId, setTplId\] = useState\('classic'\)/);
-    assert.match(app, /onClick=\{\(\) => setTplId\(t\.id\)\}/);
-    assert.match(app, /const TplComp = TEMPLATES\.find\(t => t\.id === tplId\)\.comp;/);
-    assert.match(app, /<TplComp data=\{data\} totals=\{totals\} \/>/);
+    assert.match(app, /4가지 디자인 자동 미리보기/);
+    assert.match(app, /className="preview-grid"/);
+    assert.match(app, /TEMPLATES\.map\(t => \{/);
+    assert.match(app, /previewRefs\.current\[t\.id\]/);
+    assert.match(app, /클릭한 디자인이 현재 PNG 저장 대상입니다\./);
     assert.match(app, /downloadAll/);
     assert.match(app, /4개 디자인 비교 PNG를 저장했습니다\./);
     assert.match(app, /className="export-stack"/);
@@ -160,10 +165,13 @@ describe('classic template visual refinements', () => {
 
   it('supports an optional classic stamp area without hardcoded stamp data', () => {
     assert.match(app, /stampText: ''/);
+    assert.match(app, /stampImageDataUrl: ''/);
     assert.match(app, /showStamp: false/);
     assert.match(app, /onClick=\{\(\) => setValue\('showStamp', !data\.showStamp\)\}/);
     assert.match(templates, /className="classic-stamp-slot"/);
-    assert.match(templates, /data\.showStamp \? <div className="classic-stamp-mark">/);
+    assert.match(templates, /function StampMark\(/);
+    assert.match(templates, /stampImageDataUrl/);
+    assert.match(templates, /<StampMark data=\{data\} className="classic-stamp-mark" \/>/);
     assert.match(index, /\.tpl-classic \.classic-stamp-slot\{[\s\S]*min-height:66px;[\s\S]*\}/);
   });
 });

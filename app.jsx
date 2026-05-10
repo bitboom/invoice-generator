@@ -61,6 +61,7 @@ const DEFAULT_DATA = {
   logoDataUrl: '',
   themeColor: '#0a0a0a',
   stampText: '',
+  stampImageDataUrl: '',
   showStamp: false,
 
   workName: '',
@@ -86,15 +87,17 @@ function loadData() {
 function App() {
   const [data, setData] = useState(loadData);
   const [tplId, setTplId] = useState('classic');
-  const [zoom, setZoom] = useState(0.7);
+  const [zoom, setZoom] = useState(0.48);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
   const [showIntro, setShowIntro] = useState(() => {
     try { return localStorage.getItem('invoice-intro-seen') !== 'yes'; } catch { return true; }
   });
   const invoiceRef = useRef(null);
+  const previewRefs = useRef({});
   const exportRefs = useRef({});
   const logoInputRef = useRef(null);
+  const stampInputRef = useRef(null);
 
   // persist
   useEffect(() => {
@@ -111,8 +114,8 @@ function App() {
     const calc = () => {
       const stage = document.querySelector('.stage');
       if (!stage) return;
-      const w = stage.clientWidth - 96;
-      const z = Math.min(1, Math.max(0.4, w / 794));
+      const w = (stage.clientWidth - 132) / 2;
+      const z = Math.min(0.52, Math.max(0.28, w / 794));
       setZoom(Number(z.toFixed(2)));
     };
     calc();
@@ -197,6 +200,36 @@ function App() {
     if (logoInputRef.current) logoInputRef.current.value = '';
   };
 
+  const handleStampUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const rejectStamp = (msg) => {
+      setToast({ type: 'err', msg });
+      setTimeout(() => setToast(null), 2400);
+      if (stampInputRef.current) stampInputRef.current.value = '';
+    };
+    if (file.type !== 'image/png') { rejectStamp('직인은 PNG 파일만 업로드할 수 있습니다.'); return; }
+    if (file.size > MAX_LOGO_BYTES) { rejectStamp('직인 파일은 1MB 이하 PNG만 사용할 수 있습니다.'); return; }
+    try {
+      const header = new Uint8Array(await file.slice(0, PNG_SIGNATURE.length).arrayBuffer());
+      const hasPngSignature = PNG_SIGNATURE.every((byte, idx) => header[idx] === byte);
+      if (!hasPngSignature) { rejectStamp('직인 PNG 파일 형식이 올바르지 않습니다.'); return; }
+    } catch { rejectStamp('직인 파일을 확인하지 못했습니다.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setData(d => ({ ...d, stampImageDataUrl: reader.result, showStamp: true }));
+      setToast({ type: 'ok', msg: '직인 이미지가 적용되었습니다.' });
+      setTimeout(() => setToast(null), 2400);
+    };
+    reader.onerror = () => rejectStamp('직인 이미지를 읽지 못했습니다.');
+    reader.readAsDataURL(file);
+  };
+
+  const removeStampImage = () => {
+    setData(d => ({ ...d, stampImageDataUrl: '' }));
+    if (stampInputRef.current) stampInputRef.current.value = '';
+  };
+
   const reset = () => {
     if (!confirm('모든 입력값을 기본값으로 초기화할까요?')) return;
     setData(DEFAULT_DATA);
@@ -241,7 +274,7 @@ function App() {
   }, [renderCanvas]);
 
   const download = useCallback(async () => {
-    const node = invoiceRef.current?.querySelector('.invoice');
+    const node = previewRefs.current[tplId]?.querySelector('.invoice') || invoiceRef.current?.querySelector('.invoice');
     if (!node) return;
     setBusy(true);
     try {
@@ -304,15 +337,15 @@ function App() {
         <div className="intro-overlay">
           <section className="intro-card">
             <div className="intro-kicker">Invoice Studio</div>
-            <h2>인보이스를 4가지 디자인으로 만들고 PNG로 저장하세요.</h2>
-            <p>사업장, 수신처, 품목, 계좌 정보를 한 번만 입력하면 Classic과 Invoify 1/2/3 디자인으로 바로 비교할 수 있습니다.</p>
+            <h2>입력은 한 번만, 결과는 4가지 디자인으로 한 번에 보세요.</h2>
+            <p>사업장, 수신처, 품목, 계좌 정보를 입력하면 Classic과 Invoify 1/2/3 미리보기가 자동으로 펼쳐지고 PNG로 저장할 수 있습니다.</p>
             <div className="intro-steps">
               <div><strong>1</strong><span>정보 입력</span></div>
-              <div><strong>2</strong><span>디자인 선택</span></div>
+              <div><strong>2</strong><span>4가지 자동 비교</span></div>
               <div><strong>3</strong><span>PNG 저장</span></div>
             </div>
-            <div className="intro-template-grid">
-              {TEMPLATES.map(t => <button key={t.id} type="button" onClick={() => { setTplId(t.id); closeIntro(); }}><span className="mini-badge">{t.badge}</span><b>{t.name}</b><small>{t.desc}</small></button>)}
+            <div className="intro-result-strip">
+              {TEMPLATES.map(t => <div key={t.id}><span className="mini-badge">{t.badge}</span><b>{t.name}</b><small>{t.desc}</small></div>)}
             </div>
             <p className="intro-privacy">입력한 정보와 로고는 이 브라우저에만 저장되고 GitHub Pages 서버로 전송되지 않습니다.</p>
             <button type="button" className="intro-start" onClick={closeIntro}>인보이스 만들기 시작</button>
@@ -328,26 +361,11 @@ function App() {
         <h1>견적서 만들기</h1>
         <p className="panel-sub">사업자 정보를 브라우저에만 저장하고 PNG로 출력하세요.</p>
 
-        {/* templates */}
-        <div className="section">
-          <div className="section-title">템플릿 <span style={{color:'#9a9a96',fontWeight:500,textTransform:'none',letterSpacing:0}}>{TEMPLATES.find(t=>t.id===tplId).name}</span></div>
-          <div className="templates">
-            {TEMPLATES.map(t => (
-              <button
-                key={t.id}
-                type="button"
-                className={'tpl ' + (tplId === t.id ? 'active' : '')}
-                onClick={() => setTplId(t.id)}
-              >
-                <div className="tpl-thumb">
-                  <div className={'thumb-' + t.thumb} style={{'--thumb-theme': data.themeColor}}>
-                    <div className="thumb-lines"><span></span><span></span><span></span></div>
-                  </div>
-                </div>
-                <p className="tpl-name">{t.name} <span>{t.badge}</span></p>
-                <p className="tpl-desc">{t.desc}</p>
-              </button>
-            ))}
+        <div className="section flow-hint">
+          <div className="section-title">진행 방식</div>
+          <div className="flow-card">
+            <strong>정보 입력 후 오른쪽에서 4가지 디자인을 한 번에 비교하세요.</strong>
+            <p>처음에 템플릿을 고르지 않아도 됩니다. 마음에 드는 미리보기를 클릭하면 그 디자인이 현재 PNG 저장 대상으로 선택됩니다.</p>
           </div>
         </div>
 
@@ -418,9 +436,20 @@ function App() {
             <input type="text" value={data.bizNumber} onChange={setField('bizNumber')} placeholder="사업자등록번호" />
           </div>
           <div className="field">
+            <label>직인 이미지 업로드</label>
+            <input ref={stampInputRef} type="file" accept="image/png" onChange={handleStampUpload} />
+            <p className="help-text">PNG 직인 이미지를 브라우저에만 저장합니다. 투명 배경 PNG를 권장합니다.</p>
+          </div>
+          <div className="logo-control-row">
+            <div className="stamp-preview-box">
+              {data.stampImageDataUrl ? <img src={data.stampImageDataUrl} alt="업로드 직인 미리보기" /> : <span>직인 이미지 없음</span>}
+            </div>
+            <button type="button" className="add-btn compact" onClick={removeStampImage} disabled={!data.stampImageDataUrl}>직인 이미지 제거</button>
+          </div>
+          <div className="field">
             <label>직인 문구</label>
-            <input type="text" value={data.stampText || ''} onChange={setField('stampText')} placeholder="직인에 들어갈 문구" />
-            <p className="help-text">직인 표시를 누르면 사업장 소재지 우측에 찍히고, 끄면 같은 자리가 빈 공간으로 출력됩니다.</p>
+            <input type="text" value={data.stampText || ''} onChange={setField('stampText')} placeholder="이미지가 없을 때 표시할 직인 문구" />
+            <p className="help-text">직인 표시를 누르면 출력되고, 끄면 같은 자리가 빈 공간으로 유지됩니다.</p>
           </div>
           <button type="button" className="add-btn compact" onClick={() => setValue('showStamp', !data.showStamp)}>
             {data.showStamp ? '직인 숨기기' : '직인 표시'}
@@ -522,30 +551,41 @@ function App() {
       </div>
 
       {/* ───────── Stage (preview) ───────── */}
-      <main className="stage">
+      <main className="stage multi-stage">
         <div className="stage-toolbar">
-          <span><span className="dot"></span>실시간 미리보기 · A4 (794 × 1123)</span>
+          <div>
+            <span><span className="dot"></span>4가지 디자인 자동 미리보기 · A4 (794 × 1123)</span>
+            <p className="stage-subcopy">입력을 마치면 네 가지 결과를 한 화면에서 비교하세요. 클릭한 디자인이 현재 PNG 저장 대상입니다.</p>
+          </div>
           <div className="zoom-controls">
-            <button onClick={() => setZoom(z => Math.max(0.3, +(z - 0.1).toFixed(2)))} aria-label="zoom out">−</button>
+            <button onClick={() => setZoom(z => Math.max(0.22, +(z - 0.05).toFixed(2)))} aria-label="zoom out">−</button>
             <span className="zoom-label">{Math.round(zoom*100)}%</span>
-            <button onClick={() => setZoom(z => Math.min(1.5, +(z + 0.1).toFixed(2)))} aria-label="zoom in">+</button>
-            <button onClick={() => setZoom(1)} aria-label="100%" style={{width:'auto',padding:'0 8px',fontSize:11,fontWeight:600}}>100%</button>
+            <button onClick={() => setZoom(z => Math.min(0.9, +(z + 0.05).toFixed(2)))} aria-label="zoom in">+</button>
+            <button onClick={() => setZoom(0.48)} aria-label="fit" style={{width:'auto',padding:'0 8px',fontSize:11,fontWeight:600}}>FIT</button>
           </div>
         </div>
 
-        {/* Wrapper for scaling — keeps document flow correct */}
-        <div style={{
-          width: 794 * zoom,
-          height: 1123 * zoom,
-          position:'relative',
-        }}>
-          <div
-            ref={invoiceRef}
-            className="invoice-frame"
-            style={{ transform: `scale(${zoom})`, position:'absolute', top:0, left:0 }}
-          >
-            <TplComp data={data} totals={totals} />
-          </div>
+        <div className="preview-grid">
+          {TEMPLATES.map(t => {
+            const PreviewComp = t.comp;
+            return (
+              <section key={t.id} className={'preview-card ' + (tplId === t.id ? 'active' : '')} onClick={() => setTplId(t.id)}>
+                <div className="preview-card-head">
+                  <div><b>{t.name}</b><span>{t.desc}</span></div>
+                  <em>{tplId === t.id ? '현재 저장 대상' : t.badge}</em>
+                </div>
+                <div className="preview-scale-shell" style={{width: 794 * zoom, height: 1123 * zoom}}>
+                  <div
+                    ref={el => { previewRefs.current[t.id] = el; if (t.id === tplId) invoiceRef.current = el; }}
+                    className="invoice-frame"
+                    style={{ transform: `scale(${zoom})`, position:'absolute', top:0, left:0 }}
+                  >
+                    <PreviewComp data={data} totals={totals} />
+                  </div>
+                </div>
+              </section>
+            );
+          })}
         </div>
       </main>
 
