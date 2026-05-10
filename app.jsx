@@ -300,7 +300,6 @@ function App() {
   }, [capturePng, data.date, tplId]);
 
   const TplComp = TEMPLATES.find(t => t.id === tplId).comp;
-  const miniPreviewZoom = 0.16;
   const modalPreviewZoom = 0.6;
   const closeIntro = () => {
     try { localStorage.setItem('invoice-intro-seen', 'yes'); } catch {}
@@ -534,20 +533,6 @@ function App() {
           <button type="button" className="btn btn-ghost preview-action-btn" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 열기">
             🔍 미리보기
           </button>
-        </div>
-        <div className="save-preview-card">
-          <div className="save-preview-head">
-            <span>저장 전 미리보기</span>
-            <button type="button" className="preview-zoom-btn" onClick={() => setPreviewOpen(true)} aria-label="미리보기 크게 보기">크게 보기</button>
-          </div>
-          <button type="button" className="save-preview-thumb" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 크게 보기">
-            <div className="mini-preview-shell" style={{width: 794 * miniPreviewZoom, height: 1123 * miniPreviewZoom}}>
-              <div className="invoice-frame mini-preview-frame" style={{ transform: `scale(${miniPreviewZoom})`, position:'absolute', top:0, left:0 }}>
-                <TplComp data={data} totals={totals} />
-              </div>
-            </div>
-          </button>
-          <p>수정하면 이 미리보기도 바로 바뀝니다.</p>
         </div>
       </div>
 
