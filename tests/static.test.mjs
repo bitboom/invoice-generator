@@ -125,8 +125,12 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /오른쪽 미리보기가 그대로 PNG로 저장됩니다\./);
     assert.match(app, /PNG 저장/);
     assert.match(app, /저장 전 미리보기/);
+    assert.match(app, /저장 전 미리보기 열기/);
     assert.match(app, /미리보기 크게 보기/);
+    assert.match(app, /🔍 미리보기/);
     assert.match(app, /수정하면 이 미리보기도 바로 바뀝니다\./);
+    assert.match(index, /\.action-row/);
+    assert.match(index, /\.preview-action-btn/);
     assert.match(index, /\.save-preview-card/);
     assert.match(index, /\.preview-modal/);
     assert.match(index, /\.mini-preview-frame/);

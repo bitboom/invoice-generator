@@ -461,6 +461,9 @@
   }
   .btn-ghost:hover{border-color:var(--ink)}
 
+  .action-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+  .preview-action-btn{min-width:116px;white-space:nowrap}
+
   .save-preview-card{
     background:#fff;
     border:1px solid var(--line);
@@ -1233,7 +1236,9 @@
     .intro-start{width:100%;padding:15px 18px}
     .panel{padding:22px 18px 220px}
     .actionbar{padding:12px 14px;gap:8px;flex-wrap:nowrap}
+    .action-row{grid-template-columns:1fr 112px;gap:7px}
     .actionbar .btn{width:100%;padding:12px 10px;font-size:12px}
+    .preview-action-btn{min-width:0}
     .save-preview-card{padding:8px}.save-preview-thumb{padding:6px}.save-preview-card p{display:none}
     .preview-modal{padding:10px;place-items:start center}
     .preview-modal-card{max-height:96vh;border-radius:18px}

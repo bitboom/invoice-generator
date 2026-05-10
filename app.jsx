@@ -529,13 +529,18 @@ function App() {
 
       {/* ───────── Sticky bottom action bar ───────── */}
       <div className="actionbar">
-        <button className="btn btn-primary" onClick={download} disabled={busy}>
-          {busy ? '저장 중...' : 'PNG 저장'}
-        </button>
+        <div className="action-row">
+          <button className="btn btn-primary" onClick={download} disabled={busy}>
+            {busy ? '저장 중...' : 'PNG 저장'}
+          </button>
+          <button type="button" className="btn btn-ghost preview-action-btn" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 열기">
+            🔍 미리보기
+          </button>
+        </div>
         <div className="save-preview-card">
           <div className="save-preview-head">
             <span>저장 전 미리보기</span>
-            <button type="button" className="preview-zoom-btn" onClick={() => setPreviewOpen(true)} aria-label="미리보기 크게 보기">🔍 크게</button>
+            <button type="button" className="preview-zoom-btn" onClick={() => setPreviewOpen(true)} aria-label="미리보기 크게 보기">크게 보기</button>
           </div>
           <button type="button" className="save-preview-thumb" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 크게 보기">
             <div className="mini-preview-shell" style={{width: 794 * miniPreviewZoom, height: 1123 * miniPreviewZoom}}>
