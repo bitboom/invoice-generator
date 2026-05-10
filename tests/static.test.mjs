@@ -80,11 +80,17 @@ describe('privacy and repository hygiene', () => {
 });
 
 describe('shared logo, theme, and template behavior', () => {
-  it('offers exactly three shared templates with stable ids', () => {
-    for (const id of ['classic', 'minimal', 'bold']) {
+  it('offers exactly four PNG templates with stable ids', () => {
+    for (const id of ['classic', 'invoify1', 'invoify2', 'invoify3']) {
       assert.match(app, new RegExp(`id: '${id}'`));
-      assert.match(templates, new RegExp(`tpl-${id}`));
     }
+    assert.match(templates, /function ClassicTemplate/);
+    assert.match(templates, /function InvoifyTemplate1/);
+    assert.match(templates, /function InvoifyTemplate2/);
+    assert.match(templates, /function InvoifyTemplate3/);
+    assert.match(index, /\.tpl-invoify3\{/);
+    assert.match(index, /\.tpl-invoify3 \.inv3-lower\{position:absolute;left:58px;right:58px;bottom:160px/);
+    assert.match(index, /\.tpl-invoify3 \.inv3-footer\{position:absolute;left:58px;right:58px;bottom:42px/);
   });
 
   it('uploads one browser-local PNG image and renders it through the shared LogoMark component', () => {
@@ -93,7 +99,7 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /readAsDataURL\(file\)/, 'logo upload should preserve PNG alpha by storing the original Data URL');
     assert.match(app, /logoDataUrl: reader\.result/, 'uploaded logo should be stored in app state/localStorage');
     assert.match(templates, /function LogoMark\(/, 'templates should share a single logo renderer');
-    assert.equal((templates.match(/<LogoMark data=\{data\}/g) || []).length, 3, 'each template should render the same uploaded logo');
+    assert.equal((templates.match(/<LogoMark data=\{data\}/g) || []).length, 4, 'each template should render the same uploaded logo');
   });
 
   it('guards against oversized logos and localStorage quota failures', () => {
@@ -112,7 +118,7 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /onClick=\{\(\) => setValue\('themeColor', p\.color\)\}/);
     assert.match(templates, /'--theme': theme/);
     assert.match(templates, /'--on-theme': readableOn\(theme\)/);
-    assert.equal((templates.match(/style=\{themeVars\(data\)\}/g) || []).length, 3, 'each template should receive the shared theme variables');
+    assert.equal((templates.match(/style=\{themeVars\(data\)\}/g) || []).length, 4, 'each template should receive the shared theme variables');
   });
 
   it('updates the selected template through React state rather than per-template data forks', () => {
@@ -120,6 +126,9 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /onClick=\{\(\) => setTplId\(t\.id\)\}/);
     assert.match(app, /const TplComp = TEMPLATES\.find\(t => t\.id === tplId\)\.comp;/);
     assert.match(app, /<TplComp data=\{data\} totals=\{totals\} \/>/);
+    assert.match(app, /downloadAll/);
+    assert.match(app, /4개 디자인 비교 PNG를 저장했습니다\./);
+    assert.match(app, /className="export-stack"/);
   });
 
   it('loads templates before the app bundle on GitHub Pages', () => {

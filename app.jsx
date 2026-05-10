@@ -1,4 +1,4 @@
-/* global React, ReactDOM, html2canvas, ClassicTemplate, MinimalTemplate, BoldTemplate, fmt */
+/* global React, ReactDOM, html2canvas, ClassicTemplate, InvoifyTemplate1, InvoifyTemplate2, InvoifyTemplate3, fmt */
 const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
 const STORAGE_KEY = 'invoice-data-v2';
@@ -6,9 +6,10 @@ const MAX_LOGO_BYTES = 1024 * 1024;
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic', desc: '사이드바형',  comp: ClassicTemplate },
-  { id: 'minimal', name: 'Minimal', desc: '여백·라인 중심', comp: MinimalTemplate },
-  { id: 'bold',    name: 'Bold',    desc: '헤더 강조 카드', comp: BoldTemplate    },
+  { id: 'classic', name: 'Classic', desc: '한국형 추천', badge: '추천', thumb: 'classic', comp: ClassicTemplate },
+  { id: 'invoify1', name: 'Invoify 1', desc: '기본형 비즈니스', badge: '기본형', thumb: 'minimal', comp: InvoifyTemplate1 },
+  { id: 'invoify2', name: 'Invoify 2', desc: '문서형 상세', badge: '문서형', thumb: 'bold', comp: InvoifyTemplate2 },
+  { id: 'invoify3', name: 'Invoify 3', desc: '확장 강조형', badge: '확장형', thumb: 'invoify3', comp: InvoifyTemplate3 },
 ];
 
 const PALETTE = [
@@ -88,7 +89,11 @@ function App() {
   const [zoom, setZoom] = useState(0.7);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
+  const [showIntro, setShowIntro] = useState(() => {
+    try { return localStorage.getItem('invoice-intro-seen') !== 'yes'; } catch { return true; }
+  });
   const invoiceRef = useRef(null);
+  const exportRefs = useRef({});
   const logoInputRef = useRef(null);
 
   // persist
@@ -199,34 +204,50 @@ function App() {
   };
 
   // Download as PNG
+  const renderCanvas = useCallback((node) => html2canvas(node, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+    windowWidth: 794,
+    windowHeight: 1123,
+    width: 794,
+    height: 1123,
+    onclone: (doc) => {
+      doc.querySelectorAll('.invoice-frame').forEach(frame => {
+        frame.style.transform = 'none';
+        frame.style.position = 'static';
+      });
+    },
+  }), []);
+
+  const saveCanvas = (canvas, filename) => new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) { reject(new Error('PNG 변환에 실패했습니다.')); return; }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => { URL.revokeObjectURL(url); resolve(); }, 400);
+    }, 'image/png');
+  });
+
+  const capturePng = useCallback(async (node, filename) => {
+    const canvas = await renderCanvas(node);
+    await saveCanvas(canvas, filename);
+  }, [renderCanvas]);
+
   const download = useCallback(async () => {
     const node = invoiceRef.current?.querySelector('.invoice');
     if (!node) return;
     setBusy(true);
     try {
-      const canvas = await html2canvas(node, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        logging: false,
-        windowWidth: 794,
-        windowHeight: 1123,
-        width: 794,
-        height: 1123,
-        onclone: (doc) => {
-          const frame = doc.querySelector('.invoice-frame');
-          if (frame) {
-            frame.style.transform = 'none';
-            frame.style.position = 'static';
-          }
-        },
-      });
-      const link = document.createElement('a');
-      const fname = `invoice_${data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled'}.png`;
-      link.download = fname;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      setToast({ type: 'ok', msg: '이미지 다운로드 완료' });
+      const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
+      await capturePng(node, `invoice_${tplId}_${datePart}.png`);
+      setToast({ type: 'ok', msg: '현재 디자인 PNG 다운로드 완료' });
     } catch (err) {
       console.error(err);
       setToast({ type: 'err', msg: '저장 실패: ' + err.message });
@@ -234,12 +255,70 @@ function App() {
       setBusy(false);
       setTimeout(() => setToast(null), 2400);
     }
-  }, [data.date]);
+  }, [capturePng, data.date, tplId]);
+
+  const downloadAll = useCallback(async () => {
+    setBusy(true);
+    try {
+      const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
+      const canvases = [];
+      for (const t of TEMPLATES) {
+        const node = exportRefs.current[t.id]?.querySelector('.invoice');
+        if (node) canvases.push(await renderCanvas(node));
+      }
+      const sheet = document.createElement('canvas');
+      sheet.width = 1588;
+      sheet.height = 2246;
+      const ctx = sheet.getContext('2d');
+      ctx.fillStyle = '#f3f0ea';
+      ctx.fillRect(0, 0, sheet.width, sheet.height);
+      const cellW = 794;
+      const cellH = 1123;
+      canvases.forEach((canvas, idx) => {
+        const x = (idx % 2) * cellW;
+        const y = Math.floor(idx / 2) * cellH;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, cellW, cellH);
+        ctx.drawImage(canvas, x, y, cellW, cellH);
+      });
+      await saveCanvas(sheet, `invoice_all_4_versions_${datePart}.png`);
+      setToast({ type: 'ok', msg: '4개 디자인 비교 PNG를 저장했습니다.' });
+    } catch (err) {
+      console.error(err);
+      setToast({ type: 'err', msg: '전체 저장 실패: ' + err.message });
+    } finally {
+      setBusy(false);
+      setTimeout(() => setToast(null), 2600);
+    }
+  }, [data.date, renderCanvas]);
 
   const TplComp = TEMPLATES.find(t => t.id === tplId).comp;
+  const closeIntro = () => {
+    try { localStorage.setItem('invoice-intro-seen', 'yes'); } catch {}
+    setShowIntro(false);
+  };
 
   return (
     <div className="app">
+      {showIntro && (
+        <div className="intro-overlay">
+          <section className="intro-card">
+            <div className="intro-kicker">Invoice Studio</div>
+            <h2>인보이스를 4가지 디자인으로 만들고 PNG로 저장하세요.</h2>
+            <p>사업장, 수신처, 품목, 계좌 정보를 한 번만 입력하면 Classic과 Invoify 1/2/3 디자인으로 바로 비교할 수 있습니다.</p>
+            <div className="intro-steps">
+              <div><strong>1</strong><span>정보 입력</span></div>
+              <div><strong>2</strong><span>디자인 선택</span></div>
+              <div><strong>3</strong><span>PNG 저장</span></div>
+            </div>
+            <div className="intro-template-grid">
+              {TEMPLATES.map(t => <button key={t.id} type="button" onClick={() => { setTplId(t.id); closeIntro(); }}><span className="mini-badge">{t.badge}</span><b>{t.name}</b><small>{t.desc}</small></button>)}
+            </div>
+            <p className="intro-privacy">입력한 정보와 로고는 이 브라우저에만 저장되고 GitHub Pages 서버로 전송되지 않습니다.</p>
+            <button type="button" className="intro-start" onClick={closeIntro}>인보이스 만들기 시작</button>
+          </section>
+        </div>
+      )}
       {/* ───────── Left panel (form) ───────── */}
       <aside className="panel">
         <div className="brand">
@@ -261,11 +340,11 @@ function App() {
                 onClick={() => setTplId(t.id)}
               >
                 <div className="tpl-thumb">
-                  <div className={'thumb-' + t.id} style={{'--thumb-theme': data.themeColor}}>
+                  <div className={'thumb-' + t.thumb} style={{'--thumb-theme': data.themeColor}}>
                     <div className="thumb-lines"><span></span><span></span><span></span></div>
                   </div>
                 </div>
-                <p className="tpl-name">{t.name}</p>
+                <p className="tpl-name">{t.name} <span>{t.badge}</span></p>
                 <p className="tpl-desc">{t.desc}</p>
               </button>
             ))}
@@ -436,8 +515,9 @@ function App() {
       {/* ───────── Sticky bottom action bar ───────── */}
       <div className="actionbar">
         <button className="btn btn-ghost" onClick={() => window.print()} title="인쇄">인쇄</button>
+        <button className="btn btn-ghost" onClick={downloadAll} disabled={busy}>4개 비교 PNG</button>
         <button className="btn btn-primary" onClick={download} disabled={busy}>
-          {busy ? '저장 중...' : '⬇ PNG 이미지 저장'}
+          {busy ? '저장 중...' : '⬇ 현재 디자인 PNG 저장'}
         </button>
       </div>
 
@@ -468,6 +548,13 @@ function App() {
           </div>
         </div>
       </main>
+
+      <div className="export-stack" aria-hidden="true">
+        {TEMPLATES.map(t => {
+          const ExportComp = t.comp;
+          return <div key={t.id} ref={el => { exportRefs.current[t.id] = el; }} className="export-frame"><ExportComp data={data} totals={totals} /></div>;
+        })}
+      </div>
 
       {toast && (
         <div className="toast" style={toast.type === 'err' ? {background:'#dc2626'} : null}>

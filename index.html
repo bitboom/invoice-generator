@@ -119,7 +119,7 @@
   /* ---------- Template picker ---------- */
   .templates{
     display:grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap:8px;
   }
   .tpl{
@@ -1083,6 +1083,48 @@
     animation: toast-in .2s ease;
   }
   @keyframes toast-in{from{transform:translateY(8px);opacity:0}}
+
+  /* ---------- Intro overlay ---------- */
+  .intro-overlay{position:fixed;inset:0;z-index:50;background:rgba(236,234,229,.92);backdrop-filter:blur(10px);display:grid;place-items:center;padding:28px}
+  .intro-card{width:min(920px,100%);background:#fff;border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:44px;text-align:center}
+  .intro-kicker{font-family:'Archivo',sans-serif;font-size:12px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .intro-card h2{font-family:'Archivo',sans-serif;font-size:44px;letter-spacing:-.05em;line-height:1.05;margin:0 auto 14px;max-width:720px}
+  .intro-card p{color:var(--muted);line-height:1.65;margin:0 auto 22px;max-width:660px}
+  .intro-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px auto;max-width:620px}
+  .intro-steps div{border:1px solid var(--line-2);border-radius:16px;padding:16px 10px;background:#fbfaf7;display:flex;gap:8px;justify-content:center;align-items:center}
+  .intro-steps strong{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px}
+  .intro-steps span{font-weight:800;font-size:13px}
+  .intro-template-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 20px}
+  .intro-template-grid button{appearance:none;border:1px solid var(--line);background:#fff;border-radius:18px;padding:18px 14px;text-align:left;cursor:pointer;transition:.15s ease}
+  .intro-template-grid button:hover{transform:translateY(-2px);border-color:var(--ink);box-shadow:0 14px 32px -24px rgba(0,0,0,.35)}
+  .intro-template-grid b{display:block;font-family:'Archivo',sans-serif;font-size:18px;margin:8px 0 4px}
+  .intro-template-grid small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+  .mini-badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 7px;font-size:10px;font-weight:800;color:var(--muted)}
+  .intro-privacy{font-size:12px;color:#166534!important;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:999px;padding:9px 14px;display:inline-block;margin-bottom:22px!important}
+  .intro-start{appearance:none;border:0;background:var(--ink);color:#fff;border-radius:999px;padding:15px 24px;font-weight:900;cursor:pointer;font-size:14px}
+
+  .tpl-name{display:flex;align-items:center;justify-content:space-between;gap:4px}
+  .tpl-name span{font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 4px;font-weight:800}
+  .thumb-invoify3{height:100%;position:relative;background:linear-gradient(135deg,#fff 0 68%,#f1eee8 68%)}
+  .thumb-invoify3::before{content:'';position:absolute;left:10%;top:10%;width:34%;height:7%;background:var(--thumb-theme,#0a0a0a);border-radius:99px}
+  .thumb-invoify3::after{content:'';position:absolute;right:10%;top:12%;width:18%;height:18%;border:3px solid var(--thumb-theme,#0a0a0a);border-radius:50%}
+  .export-stack{position:absolute;left:-10000px;top:0;width:794px;pointer-events:none;visibility:visible}
+  .export-frame{width:794px;height:1123px;margin:0 0 24px;background:#fff;overflow:hidden}
+
+  /* ============= INVOIFY TEMPLATE 3 ============= */
+  .tpl-invoify3{padding:54px 58px;background:#fff;color:#111;position:relative;overflow:hidden}
+  .tpl-invoify3::before{content:'';position:absolute;inset:0 0 auto;height:10px;background:var(--theme)}
+  .tpl-invoify3 .inv3-hero{display:grid;grid-template-columns:1fr 190px;gap:32px;align-items:start;padding-bottom:28px;border-bottom:2px solid #111}
+  .tpl-invoify3 .inv3-kicker{font-family:'Archivo',sans-serif;font-size:54px;line-height:.9;font-weight:900;letter-spacing:-.06em;color:var(--theme);margin-bottom:16px}
+  .tpl-invoify3 .inv3-hero h1{font-size:18px;margin:0 0 8px;font-weight:900}
+  .tpl-invoify3 .inv3-hero p{margin:0;color:#555;font-size:12px;line-height:1.55}
+  .tpl-invoify3 .inv3-logo{text-align:right}.tpl-invoify3 .inv3-logo .uploaded-logo,.tpl-invoify3 .inv3-logo .logo-fallback{max-width:170px;max-height:72px;color:var(--theme)}
+  .tpl-invoify3 .inv3-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.tpl-invoify3 .inv3-meta div{background:#f7f7f5;border:1px solid #ece9e3;border-radius:14px;padding:14px}.tpl-invoify3 .inv3-meta span{display:block;font-size:10px;color:#777;font-weight:800;margin-bottom:7px}.tpl-invoify3 .inv3-meta strong{font-size:13px;line-height:1.35}
+  .tpl-invoify3 .inv3-info{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-bottom:22px}.tpl-invoify3 .inv3-info>div{border-left:4px solid var(--theme);padding-left:14px}.tpl-invoify3 h3{font-size:11px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#666}.tpl-invoify3 p{margin:4px 0;font-size:12px;line-height:1.55}.tpl-invoify3 p b{display:inline-block;min-width:88px;font-weight:900}
+  .tpl-invoify3 .items{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}.tpl-invoify3 .items th{text-align:left;background:var(--theme);color:var(--on-theme);padding:12px 10px;font-size:11px}.tpl-invoify3 .items th.num,.tpl-invoify3 .items td.num{text-align:right}.tpl-invoify3 .items td{padding:13px 10px;border-bottom:1px solid #ece9e3}.tpl-invoify3 .items tbody tr:nth-child(even) td{background:#f8f7f4}
+  .tpl-invoify3 .inv3-lower{position:absolute;left:58px;right:58px;bottom:160px;display:grid;grid-template-columns:1fr 300px;gap:28px}.tpl-invoify3 .bank{border:1px solid #ece9e3;border-radius:16px;padding:16px;background:#fff}.tpl-invoify3 .inv3-totals{border:1px solid #111;border-radius:16px;overflow:hidden;background:#fff}.tpl-invoify3 .inv3-totals div{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #ece9e3}.tpl-invoify3 .inv3-totals div:last-child{border-bottom:0}.tpl-invoify3 .inv3-totals .grand{background:#111;color:#fff}.tpl-invoify3 .inv3-totals strong{font-variant-numeric:tabular-nums}
+  .tpl-invoify3 .inv3-footer{position:absolute;left:58px;right:58px;bottom:42px;display:grid;grid-template-columns:1fr 210px;gap:28px;border-top:1px solid #d8d5cd;padding-top:18px}.tpl-invoify3 .inv3-footer p{font-size:10.5px;margin:3px 0}.tpl-invoify3 .inv3-signature{border-left:1px solid #d8d5cd;padding-left:22px;display:flex;flex-direction:column;justify-content:center}.tpl-invoify3 .inv3-signature span{font-size:10px;color:#777;font-weight:800}.tpl-invoify3 .inv3-signature strong{font-size:22px;color:var(--theme);font-family:'Space Grotesk',sans-serif}
+
 </style>
 </head>
 <body>

@@ -196,9 +196,9 @@ function ClassicTemplate({ data, totals }) {
 }
 
 // ───────────────────────────────────────────────────────
-// Template 2 — MINIMAL
+// Invoify Template 1 — clean business layout
 // ───────────────────────────────────────────────────────
-function MinimalTemplate({ data, totals }) {
+function InvoifyTemplate1({ data, totals }) {
   const { items, supply, tax, total } = totals;
   return (
     <div className="invoice tpl-minimal" style={themeVars(data)}>
@@ -274,9 +274,9 @@ function MinimalTemplate({ data, totals }) {
 }
 
 // ───────────────────────────────────────────────────────
-// Template 3 — BOLD HEADER
+// Invoify Template 2 — bold header layout
 // ───────────────────────────────────────────────────────
-function BoldTemplate({ data, totals }) {
+function InvoifyTemplate2({ data, totals }) {
   const { items, supply, tax, total } = totals;
   return (
     <div className="invoice tpl-bold" style={themeVars(data)}>
@@ -354,4 +354,79 @@ function BoldTemplate({ data, totals }) {
   );
 }
 
-Object.assign(window, { ClassicTemplate, MinimalTemplate, BoldTemplate, fmt });
+
+// ───────────────────────────────────────────────────────
+// Invoify Template 3 — accent document layout
+// ───────────────────────────────────────────────────────
+function InvoifyTemplate3({ data, totals }) {
+  const { items, supply, tax, total } = totals;
+  return (
+    <div className="invoice tpl-invoify3" style={themeVars(data)}>
+      <header className="inv3-hero">
+        <div>
+          <div className="inv3-kicker">INVOICE</div>
+          <h1>{safe(data.companyName, '상호 / 회사명')}</h1>
+          <p>{safe(data.address, '사업장 주소')}</p>
+        </div>
+        <div className="inv3-logo"><LogoMark data={data} /></div>
+      </header>
+
+      <section className="inv3-meta">
+        <div><span>발행일</span><strong>{data.date}</strong></div>
+        <div><span>수신</span><strong>{safe(data.recipient, '수신처')}</strong></div>
+        <div><span>담당</span><strong>{safe(data.contact, '담당자 / 연락처')}</strong></div>
+      </section>
+
+      <section className="inv3-info">
+        <div>
+          <h3>사업장 정보</h3>
+          <p><b>전화</b>{safe(data.phone, '전화번호')}</p>
+          <p><b>이메일</b>{safe(data.email, '이메일')}</p>
+          <p><b>사업자등록번호</b>{safe(data.bizNumber, '사업자등록번호')}</p>
+        </div>
+        <div>
+          <h3>작업 내용</h3>
+          <p>{safe(data.workName, '작업명')}</p>
+        </div>
+      </section>
+
+      <table className="items">
+        <thead>
+          <tr><th>품목</th><th className="num">단가</th><th className="num">수량</th><th className="num">합계</th></tr>
+        </thead>
+        <tbody>
+          {items.map((it, i) => (
+            <tr key={i}>
+              <td>{safe(it.name, '품목')}</td>
+              <td className="num">{it.unitPrice ? fmt(it.unitPrice) : '—'}</td>
+              <td className="num">{it.qty || '—'}</td>
+              <td className="num">{it.total ? fmt(it.total) : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <section className="inv3-lower">
+        <BankBlock data={data} compact />
+        <div className="inv3-totals">
+          <div><span>합계</span><strong>{fmt(supply)}</strong></div>
+          <div><span>부가세</span><strong>{fmt(tax)}</strong></div>
+          <div className="grand"><span>공급가액</span><strong>₩ {fmt(total)}</strong></div>
+        </div>
+      </section>
+
+      <footer className="inv3-footer">
+        <div>
+          <h3>참고 사항</h3>
+          {(data.notes || []).filter(n => String(n).trim()).map((n, i) => <p key={i}>※ {n}</p>)}
+        </div>
+        <div className="inv3-signature">
+          <span>서명</span>
+          <strong>{safe(data.stampText || data.companyName, '서명')}</strong>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+Object.assign(window, { ClassicTemplate, InvoifyTemplate1, InvoifyTemplate2, InvoifyTemplate3, fmt });
