@@ -29,6 +29,24 @@ function todayKR() {
   return `${d.getFullYear()}. ${p(d.getMonth()+1)}. ${p(d.getDate())}.`;
 }
 
+const DEFAULT_NOTES = [
+  '시공 및 비용에 관한 일정은 사전에 협의 후 진행합니다.',
+  '공정용수는 갑측이 제공합니다.',
+  '설계나 시공 내용이 변경될 경우, 견적 금액은 변동될 수 있습니다.',
+  '본 견적은 견적일로부터 15일 동안 유효합니다.',
+];
+const LEGACY_THREE_NOTES = [DEFAULT_NOTES[0], DEFAULT_NOTES[2], DEFAULT_NOTES[3]];
+
+const normalizeNotes = (notes) => {
+  if (!Array.isArray(notes)) return DEFAULT_NOTES;
+  const hasWaterNote = notes.includes(DEFAULT_NOTES[1]);
+  const wasLegacyDefault = LEGACY_THREE_NOTES.every((note, idx) => notes[idx] === note) && notes.length === 3;
+  if (!hasWaterNote && wasLegacyDefault) {
+    return [notes[0], DEFAULT_NOTES[1], notes[1], notes[2]];
+  }
+  return notes;
+};
+
 const DEFAULT_DATA = {
   date: todayKR(),
   companyName: '',
@@ -48,11 +66,7 @@ const DEFAULT_DATA = {
   recipient: '',
   contact: '',
 
-  notes: [
-    '시공 및 비용에 관한 일정은 사전에 협의 후 진행합니다.',
-    '설계나 시공 내용이 변경될 경우, 견적 금액은 변동될 수 있습니다.',
-    '본 견적은 견적일로부터 15일 동안 유효합니다.',
-  ],
+  notes: DEFAULT_NOTES,
 
   items: [
     { name: '', unitPrice: 0, qty: 1, total: 0 },
@@ -64,7 +78,7 @@ function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_DATA;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_DATA, ...parsed };
+    return { ...DEFAULT_DATA, ...parsed, notes: normalizeNotes(parsed.notes) };
   } catch { return DEFAULT_DATA; }
 }
 

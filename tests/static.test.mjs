@@ -46,7 +46,15 @@ describe('privacy and repository hygiene', () => {
     for (const field of privateFields) {
       assert.match(defaults, new RegExp(`${field}: ''`), `${field} should default to an empty string`);
     }
-    assert.match(defaults, /showStamp: false/, 'stamp visibility should default off');
+    assert.match(app, /showStamp: false/, 'stamp visibility should default off');
+  });
+
+  it('defaults footer notes to four caution lines and migrates the old three-line default', () => {
+    assert.match(app, /const DEFAULT_NOTES = \[/);
+    assert.match(app, /'공정용수는 갑측이 제공합니다\.'/);
+    assert.match(app, /const LEGACY_THREE_NOTES = \[DEFAULT_NOTES\[0\], DEFAULT_NOTES\[2\], DEFAULT_NOTES\[3\]\];/);
+    assert.match(app, /return \{ \.\.\.DEFAULT_DATA, \.\.\.parsed, notes: normalizeNotes\(parsed\.notes\) \};/);
+    assert.match(app, /return \[notes\[0\], DEFAULT_NOTES\[1\], notes\[1\], notes\[2\]\];/);
   });
 
   it('does not reference bundled business logo assets', () => {
