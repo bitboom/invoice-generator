@@ -93,9 +93,7 @@ function App() {
   const [zoom, setZoom] = useState(0.48);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
-  const [showIntro, setShowIntro] = useState(() => {
-    try { return localStorage.getItem('invoice-intro-seen') !== 'yes'; } catch { return true; }
-  });
+  const [showIntro, setShowIntro] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const invoiceRef = useRef(null);
   const previewRefs = useRef({});

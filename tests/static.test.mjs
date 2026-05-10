@@ -138,7 +138,8 @@ describe('shared logo, theme, and template behavior', () => {
     assert.doesNotMatch(app, /4개 디자인 비교 PNG를 저장했습니다\./);
   });
 
-  it('keeps the intro usable on mobile touch browsers', () => {
+  it('opens directly to the editor while keeping intro styles safe if re-enabled', () => {
+    assert.match(app, /const \[showIntro, setShowIntro\] = useState\(false\);/);
     assert.match(index, /\.intro-overlay\{[\s\S]*overflow-y:auto;[\s\S]*-webkit-overflow-scrolling:touch;[\s\S]*touch-action:pan-y/);
     assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*\.intro-overlay\{[\s\S]*place-items:start center;[\s\S]*\}/);
     assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*button,input,textarea\{touch-action:manipulation\}/);
