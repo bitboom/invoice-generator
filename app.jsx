@@ -263,32 +263,46 @@ function App() {
     },
   }), []);
 
-  const saveCanvas = (canvas, filename) => new Promise((resolve, reject) => {
+  const canvasToBlob = (canvas) => new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) { reject(new Error('PNG 변환에 실패했습니다.')); return; }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => { URL.revokeObjectURL(url); resolve(); }, 400);
+      resolve(blob);
     }, 'image/png');
   });
 
-  const capturePng = useCallback(async (node, filename) => {
+  const saveBlob = (blob, filename) => new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => { URL.revokeObjectURL(url); resolve(); }, 400);
+  });
+
+  const makePngBlob = useCallback(async (node) => {
     const canvas = await renderCanvas(node);
-    await saveCanvas(canvas, filename);
+    return canvasToBlob(canvas);
   }, [renderCanvas]);
 
+  const capturePng = useCallback(async (node, filename) => {
+    const blob = await makePngBlob(node);
+    await saveBlob(blob, filename);
+  }, [makePngBlob]);
+
+  const currentInvoiceNode = () => previewRefs.current[tplId]?.querySelector('.invoice') || invoiceRef.current?.querySelector('.invoice');
+  const currentFilename = () => {
+    const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
+    return `invoice_classic_${datePart}.png`;
+  };
+
   const download = useCallback(async () => {
-    const node = previewRefs.current[tplId]?.querySelector('.invoice') || invoiceRef.current?.querySelector('.invoice');
+    const node = currentInvoiceNode();
     if (!node) return;
     setBusy(true);
     try {
-      const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
-      await capturePng(node, `invoice_classic_${datePart}.png`);
+      await capturePng(node, currentFilename());
       setToast({ type: 'ok', msg: 'PNG 저장 완료' });
     } catch (err) {
       console.error(err);
@@ -298,6 +312,35 @@ function App() {
       setTimeout(() => setToast(null), 2400);
     }
   }, [capturePng, data.date, tplId]);
+
+  const sharePng = useCallback(async () => {
+    const node = currentInvoiceNode();
+    if (!node) return;
+    setBusy(true);
+    try {
+      const filename = currentFilename();
+      const blob = await makePngBlob(node);
+      const file = new File([blob], filename, { type: 'image/png' });
+      const shareData = { title: 'Invoice PNG', text: '인보이스 PNG', files: [file] };
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        await navigator.share(shareData);
+        setToast({ type: 'ok', msg: '공유창을 열었습니다.' });
+      } else {
+        await saveBlob(blob, filename);
+        setToast({ type: 'ok', msg: '공유 미지원 브라우저라 PNG로 저장했습니다.' });
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        setToast({ type: 'ok', msg: '공유를 취소했습니다.' });
+      } else {
+        console.error(err);
+        setToast({ type: 'err', msg: '공유 실패: ' + err.message });
+      }
+    } finally {
+      setBusy(false);
+      setTimeout(() => setToast(null), 2400);
+    }
+  }, [makePngBlob, data.date, tplId]);
 
   const TplComp = TEMPLATES.find(t => t.id === tplId).comp;
   const modalPreviewZoom = 0.6;
@@ -528,10 +571,13 @@ function App() {
       <div className="actionbar">
         <div className="action-row">
           <button className="btn btn-primary" onClick={download} disabled={busy}>
-            {busy ? '저장 중...' : 'PNG 저장'}
+            {busy ? '처리 중...' : 'PNG 저장'}
           </button>
-          <button type="button" className="btn btn-ghost preview-action-btn" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 열기">
+          <button type="button" className="btn btn-ghost preview-action-btn" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 열기" disabled={busy}>
             🔍 미리보기
+          </button>
+          <button type="button" className="btn btn-ghost share-action-btn" onClick={sharePng} disabled={busy} aria-label="PNG 공유하기">
+            📤 공유
           </button>
         </div>
       </div>

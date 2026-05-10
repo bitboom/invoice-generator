@@ -127,8 +127,12 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /저장 전 미리보기/);
     assert.match(app, /저장 전 미리보기 열기/);
     assert.match(app, /🔍 미리보기/);
-    assert.match(index, /\.action-row\{display:grid;grid-template-columns:1fr 1fr/);
-    assert.match(index, /\.preview-action-btn/);
+    assert.match(app, /PNG 공유하기/);
+    assert.match(app, /📤 공유/);
+    assert.match(app, /navigator\.share/);
+    assert.match(app, /navigator\.canShare/);
+    assert.match(index, /\.action-row\{display:grid;grid-template-columns:1fr 1fr 1fr/);
+    assert.match(index, /\.preview-action-btn,\.share-action-btn/);
     assert.match(index, /\.preview-modal/);
     assert.doesNotMatch(app, /save-preview-card/);
     assert.doesNotMatch(index, /\.save-preview-card/);
