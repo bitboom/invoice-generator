@@ -121,6 +121,8 @@ describe('shared logo, theme, and template behavior', () => {
 
   it('keeps the UI focused on share and modal preview actions only', () => {
     assert.match(app, /const \[tplId\] = useState\('classic'\)/);
+    assert.match(app, /<h1>견적서<\/h1>/);
+    assert.match(app, /견적서를 공유하세요\./);
     assert.match(app, /저장 전 미리보기/);
     assert.match(app, /저장 전 미리보기 열기/);
     assert.match(app, /🔍 미리보기/);
@@ -128,12 +130,15 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /📤 공유/);
     assert.match(app, /navigator\.share/);
     assert.match(app, /navigator\.canShare/);
-    assert.match(app, /exportRefs\.current\[tplId\]/);
+    assert.match(app, /currentInvoiceNodes/);
+    assert.match(app, /exportRefs\.current\[page\.id\]/);
+    assert.match(app, /navigator\.canShare\(\{ files \}\)/);
     assert.match(index, /\.action-row\{display:grid;grid-template-columns:1fr 1fr/);
     assert.match(index, /\.preview-action-btn,\.share-action-btn/);
     assert.match(index, /\.preview-modal/);
     assert.doesNotMatch(app, /<main className="stage multi-stage">/);
     assert.doesNotMatch(app, /Classic 미리보기 · A4 PNG/);
+    assert.doesNotMatch(app, /Classic 견적서/);
     assert.doesNotMatch(app, /오른쪽 미리보기가 그대로 PNG로 저장됩니다\./);
     assert.doesNotMatch(app, /PNG 저장/);
     assert.doesNotMatch(app, /save-preview-card/);
@@ -165,6 +170,46 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(index, /\.stamp-crop-wrap \.stamp-image\{[\s\S]*mix-blend-mode:normal;[\s\S]*image-rendering:auto/);
   });
 
+  it('renders high-resolution export PNGs and can split a long classic invoice into two files', () => {
+    assert.match(app, /const EXPORT_SCALE = 3;/);
+    assert.match(app, /scale: EXPORT_SCALE/);
+    assert.match(app, /const CLASSIC_SINGLE_PAGE_ITEM_LIMIT = 11;/);
+    assert.match(app, /const CLASSIC_SPLIT_PAGE_ONE_ITEM_LIMIT = 14;/);
+    assert.match(app, /const makeClassicPages = \(totals\) =>/);
+    assert.match(app, /const firstPageCount = Math\.min\(CLASSIC_SPLIT_PAGE_ONE_ITEM_LIMIT, items\.length\);/);
+    assert.match(app, /items\.slice\(0, firstPageCount\)/);
+    assert.match(app, /items\.slice\(firstPageCount\)/);
+    assert.match(app, /showTotals: false/);
+    assert.match(app, /showTotals: true/);
+    assert.match(app, /showFooter: true/);
+    assert.doesNotMatch(app, /showFooter: false/);
+    assert.match(app, /invoice_\$\{datePart\}_p\$\{pageNumber\}\.png/);
+    assert.match(app, /for \(const \[idx, node\] of nodes\.entries\(\)\)/);
+    assert.match(app, /PNG \$\{files\.length\}장/);
+    assert.match(app, /preview-page-stack/);
+    assert.match(templates, /classic-footer-page-number/);
+    assert.match(templates, /\{pageNumber\} \/ \{totalPages\}/);
+    assert.doesNotMatch(templates, /classic-page-number/);
+    assert.doesNotMatch(templates, /품목 계속/);
+    assert.doesNotMatch(templates, /다음 페이지에 품목과 합계가 이어집니다\./);
+    assert.doesNotMatch(index, /classic-continuation-head/);
+    assert.doesNotMatch(index, /classic-continuation-note/);
+    assert.match(index, /\.tpl-classic\.tpl-classic-continuation \.body/);
+    assert.match(index, /\.tpl-classic \.classic-footer-page-number\{[\s\S]*position:absolute;[\s\S]*right:0;[\s\S]*top:14px;[\s\S]*\}/);
+    assert.doesNotMatch(index, /\.classic-page-number/);
+    assert.match(index, /\.preview-page-stack/);
+  });
+
+  it('lets users reorder line items in the editor', () => {
+    assert.match(app, /const moveItem = \(idx, direction\) =>/);
+    assert.match(app, /\[items\[idx\], items\[target\]\] = \[items\[target\], items\[idx\]\];/);
+    assert.match(app, /aria-label="위로 이동"/);
+    assert.match(app, /aria-label="아래로 이동"/);
+    assert.match(index, /\.reorder-controls/);
+    assert.match(index, /\.mini-icon-btn/);
+    assert.match(index, /\.item-row\{[\s\S]*grid-template-columns: 1fr 80px 60px 90px 52px 28px/);
+  });
+
   it('loads templates before the app bundle on GitHub Pages', () => {
     const templatesScriptIndex = index.indexOf('templates.jsx');
     const appScriptIndex = index.indexOf('app.jsx');
@@ -185,7 +230,7 @@ describe('classic template visual refinements', () => {
     assert.match(index, /\.tpl-classic \.items thead th\.num\{text-align:center\}/);
     assert.match(index, /\.tpl-classic \.items tbody td\.num\{text-align:center;/);
     assert.match(index, /\.tpl-classic \.items tbody td:first-child\{padding-left:8px\}/);
-    assert.match(index, /\.tpl-classic \.items tbody tr:last-child td\{[\s\S]*background:#fff;[\s\S]*border-bottom:0;[\s\S]*\}/);
+    assert.match(index, /\.tpl-classic \.items tbody tr:last-child td\.empty\{[\s\S]*background:#fff;[\s\S]*border-bottom:0;[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.total-rule\{[\s\S]*margin-top:0;[\s\S]*border-top:3px solid var\(--theme\);[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.sidebar-bank \.bk-label\{[\s\S]*width:132px;[\s\S]*\}/);
     assert.match(index, /\.tpl-classic \.info-block\{margin-bottom:10px\}/);

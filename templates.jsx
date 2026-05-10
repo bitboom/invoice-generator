@@ -129,12 +129,25 @@ function BankBlock({ data, compact = false }) {
 // ───────────────────────────────────────────────────────
 // Template 1 — CLASSIC
 // ───────────────────────────────────────────────────────
-function ClassicTemplate({ data, totals }) {
-  const { items, supply, tax, total } = totals;
-  const emptyCount = Math.max(0, 11 - items.length);
+function ClassicTemplate({
+  data,
+  totals,
+  items: pageItems,
+  pageNumber = 1,
+  totalPages = 1,
+  showTotals = true,
+  showFooter = true,
+}) {
+  const { supply, tax, total } = totals;
+  const items = pageItems || totals.items;
+  const isContinuation = totalPages > 1 && pageNumber > 1;
+  const emptyCount = showTotals && items.length === 0 ? 0 : Math.max(0, 11 - items.length);
+  const rowHeight = isContinuation && items.length > 14
+    ? Math.max(20, Math.floor(600 / items.length))
+    : 38;
 
   return (
-    <div className="invoice tpl-classic" style={themeVars(data)}>
+    <div className={'invoice tpl-classic ' + (isContinuation ? 'tpl-classic-continuation ' : '') + (!showTotals ? 'tpl-classic-no-totals' : '')} style={{ ...themeVars(data), '--classic-row-height': `${rowHeight}px` }}>
       <aside className="sidebar">
         <div className="sidebar-logo">
           <LogoMark data={data} onDark />
@@ -161,34 +174,38 @@ function ClassicTemplate({ data, totals }) {
           </div>
         </div>
 
-        <div className="info-block">
-          <h3 className="info-head">사업장 소재지</h3>
-          <div className="info-grid classic-business-grid">
-            <div className="classic-business-copy">
-              <div>{safe(data.address, '사업장 주소')}</div>
-              <div className="classic-business-line">
-                <span>{safe(data.phone, '전화번호')}</span>
-              </div>
-              <div className="classic-business-line compact">
-                <span><b style={{fontWeight:800}}>사업자등록번호</b> {safe(data.bizNumber, '사업자등록번호')}</span>
-                <span><b style={{fontWeight:800}}>이메일</b> {safe(data.email, '이메일')}</span>
+        {!isContinuation && (
+          <>
+            <div className="info-block">
+              <h3 className="info-head">사업장 소재지</h3>
+              <div className="info-grid classic-business-grid">
+                <div className="classic-business-copy">
+                  <div>{safe(data.address, '사업장 주소')}</div>
+                  <div className="classic-business-line">
+                    <span>{safe(data.phone, '전화번호')}</span>
+                  </div>
+                  <div className="classic-business-line compact">
+                    <span><b style={{fontWeight:800}}>사업자등록번호</b> {safe(data.bizNumber, '사업자등록번호')}</span>
+                    <span><b style={{fontWeight:800}}>이메일</b> {safe(data.email, '이메일')}</span>
+                  </div>
+                </div>
+                <div className="classic-stamp-slot" aria-label="직인 영역">
+                  <div className="classic-stamp-label">직인</div>
+                  <StampMark data={data} className="classic-stamp-mark" />
+                </div>
               </div>
             </div>
-            <div className="classic-stamp-slot" aria-label="직인 영역">
-              <div className="classic-stamp-label">직인</div>
-              <StampMark data={data} className="classic-stamp-mark" />
-            </div>
-          </div>
-        </div>
 
-        <div className="info-block classic-work-block">
-          <h3 className="info-head">작업내용 및 담당자</h3>
-          <div className="info-grid">
-            <div className="row"><span className="lab">작업명</span><span>{safe(data.workName, '작업명')}</span></div>
-            <div className="row"><span className="lab">수신</span><span>{safe(data.recipient, '수신처')}</span></div>
-            <div className="row"><span className="lab">담당</span><span>{safe(data.contact, '담당자 / 연락처')}</span></div>
-          </div>
-        </div>
+            <div className="info-block classic-work-block">
+              <h3 className="info-head">작업내용 및 담당자</h3>
+              <div className="info-grid">
+                <div className="row"><span className="lab">작업명</span><span>{safe(data.workName, '작업명')}</span></div>
+                <div className="row"><span className="lab">수신</span><span>{safe(data.recipient, '수신처')}</span></div>
+                <div className="row"><span className="lab">담당</span><span>{safe(data.contact, '담당자 / 연락처')}</span></div>
+              </div>
+            </div>
+          </>
+        )}
 
         <table className="items">
           <thead>
@@ -216,20 +233,27 @@ function ClassicTemplate({ data, totals }) {
           </tbody>
         </table>
 
-        <div className="total-rule"></div>
+        {showTotals && <div className="total-rule"></div>}
 
-        <div className="totals">
-          <div className="tr"><span className="lab">합계</span><span className="val">{fmt(supply)}</span></div>
-          <div className="tr"><span className="lab">부가세</span><span className="val">{fmt(tax)}</span></div>
-          <div className="tr grand">
-            <span className="lab">공급가액<br/><span style={{fontSize:11}}>(부가세포함)</span></span>
-            <span className="val" style={{fontSize:14,fontWeight:800,alignSelf:'flex-start'}}>{fmt(total)}</span>
+        {showTotals && (
+          <div className="totals">
+            <div className="tr"><span className="lab">합계</span><span className="val">{fmt(supply)}</span></div>
+            <div className="tr"><span className="lab">부가세</span><span className="val">{fmt(tax)}</span></div>
+            <div className="tr grand">
+              <span className="lab">공급가액<br/><span style={{fontSize:11}}>(부가세포함)</span></span>
+              <span className="val" style={{fontSize:14,fontWeight:800,alignSelf:'flex-start'}}>{fmt(total)}</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="footnote">
-          {(data.notes || []).filter(n => String(n).trim()).map((n, i) => <p key={i}>※ {n}</p>)}
-        </div>
+        {showFooter && (
+          <div className="footnote">
+            <div className="classic-footer-notes">
+              {(data.notes || []).filter(n => String(n).trim()).map((n, i) => <p key={i}>※ {n}</p>)}
+            </div>
+            {totalPages > 1 && <span className="classic-footer-page-number">{pageNumber} / {totalPages}</span>}
+          </div>
+        )}
       </main>
     </div>
   );

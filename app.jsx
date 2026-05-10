@@ -4,9 +4,12 @@ const { useState, useMemo, useRef, useEffect, useCallback } = React;
 const STORAGE_KEY = 'invoice-data-v2';
 const MAX_LOGO_BYTES = 1024 * 1024;
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+const EXPORT_SCALE = 3;
+const CLASSIC_SINGLE_PAGE_ITEM_LIMIT = 11;
+const CLASSIC_SPLIT_PAGE_ONE_ITEM_LIMIT = 14;
 
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic', desc: '기본 견적서', badge: '기본', thumb: 'classic', comp: ClassicTemplate },
+  { id: 'classic', name: '견적서', desc: '기본 견적서', badge: '기본', thumb: 'classic', comp: ClassicTemplate },
 ];
 
 const PALETTE = [
@@ -87,6 +90,41 @@ function loadData() {
   } catch { return DEFAULT_DATA; }
 }
 
+const makeClassicPages = (totals) => {
+  const items = totals.items || [];
+  if (items.length <= CLASSIC_SINGLE_PAGE_ITEM_LIMIT) {
+    return [{
+      id: 'classic-page-1',
+      pageNumber: 1,
+      totalPages: 1,
+      items,
+      showTotals: true,
+      showFooter: true,
+    }];
+  }
+
+  const firstPageCount = Math.min(CLASSIC_SPLIT_PAGE_ONE_ITEM_LIMIT, items.length);
+
+  return [
+    {
+      id: 'classic-page-1',
+      pageNumber: 1,
+      totalPages: 2,
+      items: items.slice(0, firstPageCount),
+      showTotals: false,
+      showFooter: true,
+    },
+    {
+      id: 'classic-page-2',
+      pageNumber: 2,
+      totalPages: 2,
+      items: items.slice(firstPageCount),
+      showTotals: true,
+      showFooter: true,
+    },
+  ];
+};
+
 function App() {
   const [data, setData] = useState(loadData);
   const [tplId] = useState('classic');
@@ -120,6 +158,7 @@ function App() {
     const total = supply + tax;
     return { items, supply, tax, total };
   }, [data.items]);
+  const invoicePages = useMemo(() => makeClassicPages(totals), [totals]);
 
   // field setters
   const setField = (key) => (e) => setData(d => ({ ...d, [key]: e.target.value }));
@@ -137,6 +176,13 @@ function App() {
   }));
   const addItem = () => setData(d => ({ ...d, items: [...d.items, { name: '', unitPrice: 0, qty: 1, total: 0 }]}));
   const removeItem = (idx) => setData(d => ({ ...d, items: d.items.length > 1 ? d.items.filter((_, i) => i !== idx) : [{ name: '', unitPrice: 0, qty: 1, total: 0 }] }));
+  const moveItem = (idx, direction) => setData(d => {
+    const target = idx + direction;
+    if (target < 0 || target >= d.items.length) return d;
+    const items = [...d.items];
+    [items[idx], items[target]] = [items[target], items[idx]];
+    return { ...d, items };
+  });
   const setNote = (idx, value) => setData(d => ({
     ...d,
     notes: d.notes.map((n, i) => i === idx ? value : n),
@@ -230,7 +276,7 @@ function App() {
 
   // Download as PNG
   const renderCanvas = useCallback((node) => html2canvas(node, {
-    scale: 2,
+    scale: EXPORT_SCALE,
     backgroundColor: '#ffffff',
     useCORS: true,
     logging: false,
@@ -269,27 +315,34 @@ function App() {
     return canvasToBlob(canvas);
   }, [renderCanvas]);
 
-  const currentInvoiceNode = () => exportRefs.current[tplId]?.querySelector('.invoice');
-  const currentFilename = () => {
+  const currentInvoiceNodes = () => invoicePages
+    .map(page => exportRefs.current[page.id]?.querySelector('.invoice'))
+    .filter(Boolean);
+  const currentFilename = (pageNumber = 1, totalPages = 1) => {
     const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
-    return `invoice_classic_${datePart}.png`;
+    return totalPages > 1 ? `invoice_${datePart}_p${pageNumber}.png` : `invoice_${datePart}.png`;
   };
 
   const sharePng = useCallback(async () => {
-    const node = currentInvoiceNode();
-    if (!node) return;
+    const nodes = currentInvoiceNodes();
+    if (!nodes.length) return;
     setBusy(true);
     try {
-      const filename = currentFilename();
-      const blob = await makePngBlob(node);
-      const file = new File([blob], filename, { type: 'image/png' });
-      const shareData = { title: 'Invoice PNG', text: '인보이스 PNG', files: [file] };
-      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      const exports = [];
+      for (const [idx, node] of nodes.entries()) {
+        const page = invoicePages[idx] || { pageNumber: idx + 1, totalPages: nodes.length };
+        const filename = currentFilename(page.pageNumber, page.totalPages);
+        const blob = await makePngBlob(node);
+        exports.push({ blob, file: new File([blob], filename, { type: 'image/png' }), filename });
+      }
+      const files = exports.map(item => item.file);
+      const shareData = { title: 'Invoice PNG', text: files.length > 1 ? `인보이스 PNG ${files.length}장` : '인보이스 PNG', files };
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files }))) {
         await navigator.share(shareData);
-        setToast({ type: 'ok', msg: '공유창을 열었습니다.' });
+        setToast({ type: 'ok', msg: files.length > 1 ? `${files.length}장 공유창을 열었습니다.` : '공유창을 열었습니다.' });
       } else {
-        await saveBlob(blob, filename);
-        setToast({ type: 'ok', msg: '공유 미지원 브라우저라 PNG로 저장했습니다.' });
+        for (const item of exports) await saveBlob(item.blob, item.filename);
+        setToast({ type: 'ok', msg: files.length > 1 ? `공유 미지원 브라우저라 PNG ${files.length}장으로 저장했습니다.` : '공유 미지원 브라우저라 PNG로 저장했습니다.' });
       }
     } catch (err) {
       if (err && err.name === 'AbortError') {
@@ -302,7 +355,7 @@ function App() {
       setBusy(false);
       setTimeout(() => setToast(null), 2400);
     }
-  }, [makePngBlob, data.date, tplId]);
+  }, [makePngBlob, data.date, tplId, invoicePages]);
 
   const TplComp = TEMPLATES.find(t => t.id === tplId).comp;
   const modalPreviewZoom = 0.6;
@@ -317,7 +370,7 @@ function App() {
         <div className="intro-overlay">
           <section className="intro-card">
             <div className="intro-kicker">Invoice Studio</div>
-            <h2>Classic 견적서를 공유하세요.</h2>
+            <h2>견적서를 공유하세요.</h2>
             <p>정보를 입력하고 로고·직인을 맞춘 뒤 공유합니다. 입력값은 이 브라우저에만 저장됩니다.</p>
             <div className="intro-steps">
               <div><strong>1</strong><span>정보 입력</span></div>
@@ -338,7 +391,7 @@ function App() {
           <div className="brand-mark">IG</div>
           <div className="brand-name">Invoice Generator</div>
         </div>
-        <h1>Classic 견적서</h1>
+        <h1>견적서</h1>
         <p className="panel-sub">입력 후 공유하거나 미리보기로 확인하세요. 데이터는 브라우저에만 남습니다.</p>
 
         {/* date */}
@@ -489,7 +542,7 @@ function App() {
             </span>
           </div>
           <div className="item-head">
-            <span>품명</span><span>단가</span><span>수량</span><span>합계</span><span></span>
+            <span>품명</span><span>단가</span><span>수량</span><span>합계</span><span>순서</span><span></span>
           </div>
           <div className="items-editor">
             {data.items.map((it, idx) => (
@@ -498,6 +551,10 @@ function App() {
                 <input type="number" value={it.unitPrice || ''} onChange={e => setItem(idx, 'unitPrice', e.target.value)} placeholder="0" />
                 <input type="number" value={it.qty || ''} onChange={e => setItem(idx, 'qty', e.target.value)} placeholder="1" />
                 <input type="number" value={it.total || ''} onChange={e => setItem(idx, 'total', e.target.value)} placeholder="0" />
+                <div className="reorder-controls" aria-label={`${idx + 1}번째 품목 순서 변경`}>
+                  <button type="button" className="mini-icon-btn" onClick={() => moveItem(idx, -1)} disabled={idx === 0} aria-label="위로 이동">↑</button>
+                  <button type="button" className="mini-icon-btn" onClick={() => moveItem(idx, 1)} disabled={idx === data.items.length - 1} aria-label="아래로 이동">↓</button>
+                </div>
                 <button className="icon-btn" onClick={() => removeItem(idx)} aria-label="삭제">×</button>
               </div>
             ))}
@@ -542,10 +599,11 @@ function App() {
       </div>
 
       <div className="export-stack" aria-hidden="true">
-        {TEMPLATES.map(t => {
-          const ExportComp = t.comp;
-          return <div key={t.id} ref={el => { exportRefs.current[t.id] = el; }} className="export-frame"><ExportComp data={data} totals={totals} /></div>;
-        })}
+        {invoicePages.map(page => (
+          <div key={page.id} ref={el => { exportRefs.current[page.id] = el; }} className="export-frame">
+            <TplComp data={data} totals={totals} {...page} />
+          </div>
+        ))}
       </div>
 
       {previewOpen && (
@@ -559,10 +617,17 @@ function App() {
               <button type="button" className="preview-close" onClick={() => setPreviewOpen(false)} aria-label="닫기">×</button>
             </div>
             <div className="preview-modal-scroll">
-              <div className="modal-preview-shell" style={{width: 794 * modalPreviewZoom, height: 1123 * modalPreviewZoom}}>
-                <div className="invoice-frame modal-preview-frame" style={{ transform: `scale(${modalPreviewZoom})`, position:'absolute', top:0, left:0 }}>
-                  <TplComp data={data} totals={totals} />
-                </div>
+              <div className="preview-page-stack">
+                {invoicePages.map(page => (
+                  <div className="modal-preview-page" key={page.id}>
+                    <div className="modal-preview-shell" style={{width: 794 * modalPreviewZoom, height: 1123 * modalPreviewZoom}}>
+                      <div className="invoice-frame modal-preview-frame" style={{ transform: `scale(${modalPreviewZoom})`, position:'absolute', top:0, left:0 }}>
+                        <TplComp data={data} totals={totals} {...page} />
+                      </div>
+                    </div>
+                    {page.totalPages > 1 && <span className="modal-page-label">{page.pageNumber} / {page.totalPages}</span>}
+                  </div>
+                ))}
               </div>
             </div>
           </section>
