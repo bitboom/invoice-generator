@@ -139,6 +139,13 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /className="export-stack"/);
   });
 
+  it('keeps the intro usable on mobile touch browsers', () => {
+    assert.match(index, /\.intro-overlay\{[\s\S]*overflow-y:auto;[\s\S]*-webkit-overflow-scrolling:touch;[\s\S]*touch-action:pan-y/);
+    assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*\.intro-overlay\{[\s\S]*place-items:start center;[\s\S]*\}/);
+    assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*\.intro-template-grid\{grid-template-columns:1fr/);
+    assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*button,input,textarea\{touch-action:manipulation\}/);
+  });
+
   it('aligns non-classic footers with notes left, stamp right, visible logos, and sharper larger stamps', () => {
     assert.match(templates, /function FooterNotesSignature\(/);
     assert.equal((templates.match(/<FooterNotesSignature data=\{data\}/g) || []).length, 3, 'Invoify templates should share the same footer/signature structure');

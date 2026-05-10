@@ -1085,8 +1085,8 @@
   @keyframes toast-in{from{transform:translateY(8px);opacity:0}}
 
   /* ---------- Intro overlay ---------- */
-  .intro-overlay{position:fixed;inset:0;z-index:50;background:rgba(236,234,229,.92);backdrop-filter:blur(10px);display:grid;place-items:center;padding:28px}
-  .intro-card{width:min(920px,100%);background:#fff;border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:44px;text-align:center}
+  .intro-overlay{position:fixed;inset:0;z-index:50;background:rgba(236,234,229,.92);backdrop-filter:blur(10px);display:grid;place-items:center;padding:28px;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .intro-card{width:min(920px,100%);background:#fff;border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:44px;text-align:center;margin:auto 0}
   .intro-kicker{font-family:'Archivo',sans-serif;font-size:12px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
   .intro-card h2{font-family:'Archivo',sans-serif;font-size:44px;letter-spacing:-.05em;line-height:1.05;margin:0 auto 14px;max-width:720px}
   .intro-card p{color:var(--muted);line-height:1.65;margin:0 auto 22px;max-width:660px}
@@ -1138,6 +1138,26 @@
   .tpl-bold .bold-stamp{position:absolute;right:62px;top:216px;width:82px;height:82px;z-index:2}.tpl-bold img.bold-stamp{border:0}
   .tpl-invoify3 .inv3-signature-stamp{width:74px;height:74px;margin-top:6px}.tpl-invoify3 img.inv3-signature-stamp{border:0}.tpl-invoify3 .stamp-text-mark.inv3-signature-stamp{font-size:13px}
   @media (max-width: 900px){.preview-grid{grid-template-columns:1fr}.intro-result-strip{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width: 600px){
+    button,input,textarea{touch-action:manipulation}
+    .intro-overlay{padding:14px;place-items:start center;align-items:start}
+    .intro-card{width:100%;padding:24px 18px;border-radius:22px;margin:10px 0 18px}
+    .intro-card h2{font-size:30px;line-height:1.08;letter-spacing:-.04em}
+    .intro-card p{font-size:13px;line-height:1.55;margin-bottom:16px}
+    .intro-steps{grid-template-columns:1fr;gap:8px;margin:16px auto}
+    .intro-steps div{padding:12px 10px}
+    .intro-template-grid{grid-template-columns:1fr;gap:8px;margin-bottom:14px}
+    .intro-template-grid button{padding:12px 14px;border-radius:14px}
+    .intro-template-grid b{font-size:16px;margin:5px 0 2px}
+    .intro-privacy{border-radius:14px;font-size:11px;line-height:1.45;margin-bottom:14px!important}
+    .intro-start{width:100%;padding:15px 18px}
+    .panel{padding:22px 18px 110px}
+    .actionbar{padding:12px 14px;gap:7px;flex-wrap:wrap}
+    .actionbar .btn{flex:1 1 calc(50% - 7px);padding:12px 10px;font-size:12px}
+    .actionbar .btn.primary{flex-basis:100%}
+    .stage{padding:24px 10px 84px}
+    .stage-toolbar{flex-wrap:wrap;gap:8px}.stage-tools{width:100%;justify-content:flex-start}
+  }
 
   /* ---------- Footer/signature alignment refinements ---------- */
   .stamp-image{
