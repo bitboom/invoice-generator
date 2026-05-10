@@ -89,14 +89,11 @@ function loadData() {
 
 function App() {
   const [data, setData] = useState(loadData);
-  const [tplId, setTplId] = useState('classic');
-  const [zoom, setZoom] = useState(0.48);
+  const [tplId] = useState('classic');
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
   const [showIntro, setShowIntro] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const invoiceRef = useRef(null);
-  const previewRefs = useRef({});
   const exportRefs = useRef({});
   const logoInputRef = useRef(null);
   const stampInputRef = useRef(null);
@@ -110,20 +107,6 @@ function App() {
       setTimeout(() => setToast(null), 3200);
     }
   }, [data]);
-
-  // auto-fit zoom
-  useEffect(() => {
-    const calc = () => {
-      const stage = document.querySelector('.stage');
-      if (!stage) return;
-      const w = (stage.clientWidth - 132) / 2;
-      const z = Math.min(0.52, Math.max(0.28, w / 794));
-      setZoom(Number(z.toFixed(2)));
-    };
-    calc();
-    window.addEventListener('resize', calc);
-    return () => window.removeEventListener('resize', calc);
-  }, []);
 
   // computed totals
   const totals = useMemo(() => {
@@ -286,32 +269,11 @@ function App() {
     return canvasToBlob(canvas);
   }, [renderCanvas]);
 
-  const capturePng = useCallback(async (node, filename) => {
-    const blob = await makePngBlob(node);
-    await saveBlob(blob, filename);
-  }, [makePngBlob]);
-
-  const currentInvoiceNode = () => previewRefs.current[tplId]?.querySelector('.invoice') || invoiceRef.current?.querySelector('.invoice');
+  const currentInvoiceNode = () => exportRefs.current[tplId]?.querySelector('.invoice');
   const currentFilename = () => {
     const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
     return `invoice_classic_${datePart}.png`;
   };
-
-  const download = useCallback(async () => {
-    const node = currentInvoiceNode();
-    if (!node) return;
-    setBusy(true);
-    try {
-      await capturePng(node, currentFilename());
-      setToast({ type: 'ok', msg: 'PNG 저장 완료' });
-    } catch (err) {
-      console.error(err);
-      setToast({ type: 'err', msg: '저장 실패: ' + err.message });
-    } finally {
-      setBusy(false);
-      setTimeout(() => setToast(null), 2400);
-    }
-  }, [capturePng, data.date, tplId]);
 
   const sharePng = useCallback(async () => {
     const node = currentInvoiceNode();
@@ -355,12 +317,12 @@ function App() {
         <div className="intro-overlay">
           <section className="intro-card">
             <div className="intro-kicker">Invoice Studio</div>
-            <h2>Classic 견적서를 PNG로 저장하세요.</h2>
-            <p>정보를 입력하고 로고·직인을 맞춘 뒤 PNG로 저장합니다. 입력값은 이 브라우저에만 저장됩니다.</p>
+            <h2>Classic 견적서를 공유하세요.</h2>
+            <p>정보를 입력하고 로고·직인을 맞춘 뒤 공유합니다. 입력값은 이 브라우저에만 저장됩니다.</p>
             <div className="intro-steps">
               <div><strong>1</strong><span>정보 입력</span></div>
               <div><strong>2</strong><span>미리보기 확인</span></div>
-              <div><strong>3</strong><span>PNG 저장</span></div>
+              <div><strong>3</strong><span>공유</span></div>
             </div>
             <div className="intro-result-strip">
               {TEMPLATES.map(t => <div key={t.id}><span className="mini-badge">{t.badge}</span><b>{t.name}</b><small>{t.desc}</small></div>)}
@@ -377,7 +339,7 @@ function App() {
           <div className="brand-name">Invoice Generator</div>
         </div>
         <h1>Classic 견적서</h1>
-        <p className="panel-sub">입력 후 PNG로 저장하세요. 데이터는 브라우저에만 남습니다.</p>
+        <p className="panel-sub">입력 후 공유하거나 미리보기로 확인하세요. 데이터는 브라우저에만 남습니다.</p>
 
         {/* date */}
         <div className="section">
@@ -570,56 +532,14 @@ function App() {
       {/* ───────── Sticky bottom action bar ───────── */}
       <div className="actionbar">
         <div className="action-row">
-          <button className="btn btn-primary" onClick={download} disabled={busy}>
-            {busy ? '처리 중...' : 'PNG 저장'}
-          </button>
           <button type="button" className="btn btn-ghost preview-action-btn" onClick={() => setPreviewOpen(true)} aria-label="저장 전 미리보기 열기" disabled={busy}>
             🔍 미리보기
           </button>
-          <button type="button" className="btn btn-ghost share-action-btn" onClick={sharePng} disabled={busy} aria-label="PNG 공유하기">
-            📤 공유
+          <button type="button" className="btn btn-primary share-action-btn" onClick={sharePng} disabled={busy} aria-label="PNG 공유하기">
+            {busy ? '처리 중...' : '📤 공유'}
           </button>
         </div>
       </div>
-
-      {/* ───────── Stage (preview) ───────── */}
-      <main className="stage multi-stage">
-        <div className="stage-toolbar">
-          <div>
-            <span><span className="dot"></span>Classic 미리보기 · A4 PNG</span>
-            <p className="stage-subcopy">오른쪽 미리보기가 그대로 PNG로 저장됩니다.</p>
-          </div>
-          <div className="zoom-controls">
-            <button onClick={() => setZoom(z => Math.max(0.22, +(z - 0.05).toFixed(2)))} aria-label="zoom out">−</button>
-            <span className="zoom-label">{Math.round(zoom*100)}%</span>
-            <button onClick={() => setZoom(z => Math.min(0.9, +(z + 0.05).toFixed(2)))} aria-label="zoom in">+</button>
-            <button onClick={() => setZoom(0.48)} aria-label="fit" style={{width:'auto',padding:'0 8px',fontSize:11,fontWeight:600}}>FIT</button>
-          </div>
-        </div>
-
-        <div className="preview-grid">
-          {TEMPLATES.map(t => {
-            const PreviewComp = t.comp;
-            return (
-              <section key={t.id} className={'preview-card ' + (tplId === t.id ? 'active' : '')} onClick={() => setTplId(t.id)}>
-                <div className="preview-card-head">
-                  <div><b>{t.name}</b><span>{t.desc}</span></div>
-                  <em>{tplId === t.id ? '저장 대상' : t.badge}</em>
-                </div>
-                <div className="preview-scale-shell" style={{width: 794 * zoom, height: 1123 * zoom}}>
-                  <div
-                    ref={el => { previewRefs.current[t.id] = el; if (t.id === tplId) invoiceRef.current = el; }}
-                    className="invoice-frame"
-                    style={{ transform: `scale(${zoom})`, position:'absolute', top:0, left:0 }}
-                  >
-                    <PreviewComp data={data} totals={totals} />
-                  </div>
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      </main>
 
       <div className="export-stack" aria-hidden="true">
         {TEMPLATES.map(t => {

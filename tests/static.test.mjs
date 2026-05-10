@@ -119,11 +119,8 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(templates, /style=\{themeVars\(data\)\}/, 'classic template should receive the shared theme variables');
   });
 
-  it('keeps the UI focused on one Classic preview and one PNG save action', () => {
-    assert.match(app, /const \[tplId, setTplId\] = useState\('classic'\)/);
-    assert.match(app, /Classic 미리보기 · A4 PNG/);
-    assert.match(app, /오른쪽 미리보기가 그대로 PNG로 저장됩니다\./);
-    assert.match(app, /PNG 저장/);
+  it('keeps the UI focused on share and modal preview actions only', () => {
+    assert.match(app, /const \[tplId\] = useState\('classic'\)/);
     assert.match(app, /저장 전 미리보기/);
     assert.match(app, /저장 전 미리보기 열기/);
     assert.match(app, /🔍 미리보기/);
@@ -131,13 +128,18 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /📤 공유/);
     assert.match(app, /navigator\.share/);
     assert.match(app, /navigator\.canShare/);
-    assert.match(index, /\.action-row\{display:grid;grid-template-columns:1fr 1fr 1fr/);
+    assert.match(app, /exportRefs\.current\[tplId\]/);
+    assert.match(index, /\.action-row\{display:grid;grid-template-columns:1fr 1fr/);
     assert.match(index, /\.preview-action-btn,\.share-action-btn/);
     assert.match(index, /\.preview-modal/);
+    assert.doesNotMatch(app, /<main className="stage multi-stage">/);
+    assert.doesNotMatch(app, /Classic 미리보기 · A4 PNG/);
+    assert.doesNotMatch(app, /오른쪽 미리보기가 그대로 PNG로 저장됩니다\./);
+    assert.doesNotMatch(app, /PNG 저장/);
     assert.doesNotMatch(app, /save-preview-card/);
     assert.doesNotMatch(index, /\.save-preview-card/);
     assert.doesNotMatch(index, /\.mini-preview-frame/);
-    assert.doesNotMatch(app, /window\.print\(\)/, 'print button should not be confused with PNG saving');
+    assert.doesNotMatch(app, /window\.print\(\)/, 'print button should not be confused with PNG sharing');
     assert.doesNotMatch(app, /4개 디자인 비교 PNG를 저장했습니다\./);
   });
 
