@@ -1139,6 +1139,65 @@
   .tpl-invoify3 .inv3-signature-stamp{width:74px;height:74px;margin-top:6px}.tpl-invoify3 img.inv3-signature-stamp{border:0}.tpl-invoify3 .stamp-text-mark.inv3-signature-stamp{font-size:13px}
   @media (max-width: 900px){.preview-grid{grid-template-columns:1fr}.intro-result-strip{grid-template-columns:repeat(2,1fr)}}
 
+  /* ---------- Footer/signature alignment refinements ---------- */
+  .stamp-image{
+    display:block;
+    object-fit:contain;
+    mix-blend-mode:normal;
+    image-rendering:auto;
+  }
+  .tpl-classic .classic-stamp-mark{width:86px;height:86px;right:-4px;top:2px}
+  .tpl-classic .classic-stamp-slot{min-height:86px}
+
+  .shared-doc-footer{
+    position:absolute;
+    left:58px;
+    right:58px;
+    bottom:42px;
+    display:grid;
+    grid-template-columns:1fr 210px;
+    gap:28px;
+    border-top:1px solid #d8d5cd;
+    padding-top:18px;
+    background:#fff;
+    box-sizing:border-box;
+  }
+  .shared-doc-footer h3{
+    font-size:11px;
+    margin:0 0 8px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    color:#666;
+  }
+  .shared-doc-footer p{font-size:10.5px;margin:3px 0;line-height:1.45;color:#3a3a3a}
+  .shared-footer-notes{min-width:0}
+  .shared-footer-signature{border-left:1px solid #d8d5cd;padding-left:22px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:92px}
+  .shared-footer-signature span{font-size:10px;color:#777;font-weight:800;margin-bottom:4px}
+  .shared-footer-signature strong{font-size:20px;color:var(--theme);font-family:'Space Grotesk',sans-serif}
+  .shared-footer-signature .footer-stamp{width:102px;height:102px;margin-top:0}
+  .shared-footer-signature img.footer-stamp{border:0}
+  .shared-footer-signature .stamp-text-mark.footer-stamp{font-size:14px}
+
+  .tpl-minimal .head .uploaded-logo,
+  .tpl-minimal .head .logo-fallback{max-height:72px;max-width:250px}
+  .tpl-minimal .head{align-items:center}
+  .tpl-minimal .bottom{bottom:252px;left:58px;right:58px;grid-template-columns:1fr 320px!important;gap:28px}
+  .tpl-minimal .minimal-footer{left:58px;right:58px;bottom:42px;grid-template-columns:1fr 210px}
+  .tpl-minimal .minimal-footer h3{font-size:11px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#666}
+  .tpl-minimal .minimal-footer p{font-size:10.5px;margin:3px 0;line-height:1.45;break-inside:auto}
+
+  .tpl-bold .topbar .uploaded-logo,
+  .tpl-bold .topbar .logo-fallback{max-height:78px;max-width:260px}
+  .tpl-bold .bottom{bottom:252px;left:58px;right:58px;grid-template-columns:1fr 320px!important;gap:28px}
+  .tpl-bold .bold-footer{left:58px;right:58px;bottom:42px;grid-template-columns:1fr 210px}
+
+  .tpl-invoify3 .inv3-logo .uploaded-logo,
+  .tpl-invoify3 .inv3-logo .logo-fallback{max-width:245px;max-height:100px}
+  .tpl-invoify3 .inv3-hero{grid-template-columns:1fr 250px}
+  .tpl-invoify3 .inv3-lower{bottom:252px;grid-template-columns:1fr 320px;gap:28px}
+  .tpl-invoify3 .inv3-footer{left:58px;right:58px;bottom:42px;grid-template-columns:1fr 210px}
+  .tpl-invoify3 .inv3-footer .footer-stamp{width:102px;height:102px;margin-top:0}
+
 </style>
 </head>
 <body>

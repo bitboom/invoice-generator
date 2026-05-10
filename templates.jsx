@@ -84,6 +84,22 @@ function StampMark({ data, className = '' }) {
   return <div className={'stamp-text-mark ' + className}>{safe(data.stampText, '직인')}</div>;
 }
 
+function FooterNotesSignature({ data, className = '' }) {
+  return (
+    <footer className={'shared-doc-footer ' + className}>
+      <div className="shared-footer-notes">
+        <h3>참고 사항</h3>
+        {(data.notes || []).filter(n => String(n).trim()).map((n, i) => <p key={i}>※ {n}</p>)}
+      </div>
+      <div className="shared-footer-signature">
+        <span>직인</span>
+        <StampMark data={data} className="footer-stamp" />
+        {!data.showStamp ? <strong>{safe(data.stampText || data.companyName, '직인')}</strong> : null}
+      </div>
+    </footer>
+  );
+}
+
 function BankBlock({ data, compact = false }) {
   return (
     <div className={compact ? 'bank compact-bank' : 'bank'}>
@@ -237,8 +253,6 @@ function InvoifyTemplate1({ data, totals }) {
         </div>
       </div>
 
-      <StampMark data={data} className="minimal-stamp" />
-
       <div className="work">
         <div className="col-head">작업 내용</div>
         <div className="work-grid">
@@ -277,9 +291,7 @@ function InvoifyTemplate1({ data, totals }) {
         </div>
       </div>
 
-      <div className="footnote">
-        {(data.notes || []).filter(n => String(n).trim()).map((n, i) => <p key={i}>※ {n}</p>)}
-      </div>
+      <FooterNotesSignature data={data} className="minimal-footer" />
     </div>
   );
 }
@@ -292,7 +304,7 @@ function InvoifyTemplate2({ data, totals }) {
   return (
     <div className="invoice tpl-bold" style={themeVars(data)}>
       <div className="topbar">
-        <LogoMark data={data} />
+        <LogoMark data={data} onDark />
         <div className="title">
           <h1>INVOICE</h1>
           <div className="date">{data.date}</div>
@@ -348,8 +360,6 @@ function InvoifyTemplate2({ data, totals }) {
           </tbody>
         </table>
 
-        <StampMark data={data} className="bold-stamp" />
-
         <div className="bottom" style={{gridTemplateColumns:'1fr 360px'}}>
           <BankBlock data={data} />
           <div className="totals-card">
@@ -359,9 +369,7 @@ function InvoifyTemplate2({ data, totals }) {
           </div>
         </div>
 
-        <div className="footnote">
-          {(data.notes || []).filter(n => String(n).trim()).map((n, i) => <p key={i}>※ {n}</p>)}
-        </div>
+        <FooterNotesSignature data={data} className="bold-footer" />
       </div>
     </div>
   );
@@ -428,17 +436,7 @@ function InvoifyTemplate3({ data, totals }) {
         </div>
       </section>
 
-      <footer className="inv3-footer">
-        <div>
-          <h3>참고 사항</h3>
-          {(data.notes || []).filter(n => String(n).trim()).map((n, i) => <p key={i}>※ {n}</p>)}
-        </div>
-        <div className="inv3-signature">
-          <span>서명</span>
-          <StampMark data={data} className="inv3-signature-stamp" />
-          {!data.showStamp ? <strong>{safe(data.stampText || data.companyName, '서명')}</strong> : null}
-        </div>
-      </footer>
+      <FooterNotesSignature data={data} className="inv3-footer" />
     </div>
   );
 }

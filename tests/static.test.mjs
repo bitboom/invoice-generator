@@ -93,6 +93,9 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(index, /\.tpl-invoify3 \.inv3-lower\{position:absolute;left:58px;right:58px;bottom:160px/);
     assert.match(index, /\.tpl-minimal \.bottom\{[\s\S]*bottom:192px;[\s\S]*\}/);
     assert.match(index, /\.tpl-invoify3 \.inv3-footer\{position:absolute;left:58px;right:58px;bottom:42px/);
+    assert.match(index, /\.tpl-minimal \.bottom\{bottom:252px;left:58px;right:58px;/, 'template 2 totals/bank should sit one footer band above the footer');
+    assert.match(index, /\.tpl-bold \.bottom\{bottom:252px;left:58px;right:58px;/, 'template 3 totals/bank should sit one footer band above the footer');
+    assert.match(index, /\.tpl-invoify3 \.inv3-lower\{bottom:252px;/, 'template 4 totals/bank should keep the same footer padding rhythm');
   });
 
   it('uploads one browser-local PNG image and renders it through the shared LogoMark component', () => {
@@ -136,6 +139,20 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /className="export-stack"/);
   });
 
+  it('aligns non-classic footers with notes left, stamp right, visible logos, and sharper larger stamps', () => {
+    assert.match(templates, /function FooterNotesSignature\(/);
+    assert.equal((templates.match(/<FooterNotesSignature data=\{data\}/g) || []).length, 3, 'Invoify templates should share the same footer/signature structure');
+    assert.doesNotMatch(templates, /className="minimal-stamp"/, 'template 2 stamp should move out of the body and into the footer');
+    assert.doesNotMatch(templates, /className="bold-stamp"/, 'template 3 stamp should move out of the body and into the footer');
+    assert.match(templates, /<LogoMark data=\{data\} onDark \/>/, 'template 3 dark header logo should be recolored for visibility');
+    assert.match(index, /\.shared-doc-footer\{[\s\S]*grid-template-columns:1fr 210px;[\s\S]*\}/);
+    assert.match(index, /\.shared-footer-signature \.footer-stamp\{width:102px;height:102px;/, 'footer stamp should be larger');
+    assert.match(index, /\.stamp-image\{[\s\S]*mix-blend-mode:normal;[\s\S]*image-rendering:auto;[\s\S]*\}/, 'uploaded stamp images should not be distorted by blend/filter effects');
+    assert.match(index, /\.tpl-minimal \.head \.uploaded-logo,[\s\S]*max-height:72px;max-width:250px/);
+    assert.match(index, /\.tpl-bold \.topbar \.uploaded-logo,[\s\S]*max-height:78px;max-width:260px/);
+    assert.match(index, /\.tpl-invoify3 \.inv3-logo \.uploaded-logo,[\s\S]*max-width:245px;max-height:100px/);
+  });
+
   it('loads templates before the app bundle on GitHub Pages', () => {
     const templatesScriptIndex = index.indexOf('templates.jsx');
     const appScriptIndex = index.indexOf('app.jsx');
@@ -173,5 +190,7 @@ describe('classic template visual refinements', () => {
     assert.match(templates, /stampImageDataUrl/);
     assert.match(templates, /<StampMark data=\{data\} className="classic-stamp-mark" \/>/);
     assert.match(index, /\.tpl-classic \.classic-stamp-slot\{[\s\S]*min-height:66px;[\s\S]*\}/);
+    assert.match(index, /\.tpl-classic \.classic-stamp-slot\{min-height:86px\}/);
+    assert.match(index, /\.tpl-classic \.classic-stamp-mark\{width:86px;height:86px;/);
   });
 });
