@@ -32,6 +32,13 @@ const themeVars = (data) => {
   return { '--theme': theme, '--on-theme': readableOn(theme) };
 };
 
+const mediaCropStyle = (data, kind) => {
+  const scale = Number(data?.[`${kind}Scale`] || 100) / 100;
+  const x = Number(data?.[`${kind}X`] || 0);
+  const y = Number(data?.[`${kind}Y`] || 0);
+  return { transform: `translate(${x}px, ${y}px) scale(${scale})` };
+};
+
 function LogoMark({ data, className = '', onDark = false }) {
   const [processedLogo, setProcessedLogo] = React.useState(data.logoDataUrl || '');
 
@@ -70,7 +77,11 @@ function LogoMark({ data, className = '', onDark = false }) {
   }, [data.logoDataUrl, onDark]);
 
   if (data.logoDataUrl) {
-    return <img className={'uploaded-logo ' + className} src={processedLogo || data.logoDataUrl} alt="logo" />;
+    return (
+      <span className={'logo-crop-wrap ' + className}>
+        <img className="uploaded-logo" src={processedLogo || data.logoDataUrl} alt="logo" style={mediaCropStyle(data, 'logo')} />
+      </span>
+    );
   }
   return <div className={'logo-fallback ' + className}>{safe(data.companyName, 'LOGO')}</div>;
 }
@@ -79,7 +90,11 @@ function LogoMark({ data, className = '', onDark = false }) {
 function StampMark({ data, className = '' }) {
   if (!data.showStamp) return null;
   if (data.stampImageDataUrl) {
-    return <img className={'stamp-image ' + className} src={data.stampImageDataUrl} alt="stamp" />;
+    return (
+      <span className={'stamp-crop-wrap ' + className}>
+        <img className="stamp-image" src={data.stampImageDataUrl} alt="stamp" style={mediaCropStyle(data, 'stamp')} />
+      </span>
+    );
   }
   return <div className={'stamp-text-mark ' + className}>{safe(data.stampText, '직인')}</div>;
 }

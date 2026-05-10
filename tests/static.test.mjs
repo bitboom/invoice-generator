@@ -81,21 +81,13 @@ describe('privacy and repository hygiene', () => {
 });
 
 describe('shared logo, theme, and template behavior', () => {
-  it('offers exactly four PNG templates with stable ids', () => {
-    for (const id of ['classic', 'invoify1', 'invoify2', 'invoify3']) {
-      assert.match(app, new RegExp(`id: '${id}'`));
-    }
+  it('offers Classic as the primary PNG template', () => {
+    assert.match(app, /const TEMPLATES = \[/);
+    assert.match(app, /id: 'classic'/);
+    assert.doesNotMatch(app, /id: 'invoify1'/);
+    assert.doesNotMatch(app, /4개 비교 PNG/);
     assert.match(templates, /function ClassicTemplate/);
-    assert.match(templates, /function InvoifyTemplate1/);
-    assert.match(templates, /function InvoifyTemplate2/);
-    assert.match(templates, /function InvoifyTemplate3/);
-    assert.match(index, /\.tpl-invoify3\{/);
-    assert.match(index, /\.tpl-invoify3 \.inv3-lower\{position:absolute;left:58px;right:58px;bottom:160px/);
-    assert.match(index, /\.tpl-minimal \.bottom\{[\s\S]*bottom:192px;[\s\S]*\}/);
-    assert.match(index, /\.tpl-invoify3 \.inv3-footer\{position:absolute;left:58px;right:58px;bottom:42px/);
-    assert.match(index, /\.tpl-minimal \.bottom\{bottom:252px;left:58px;right:58px;/, 'template 2 totals/bank should sit one footer band above the footer');
-    assert.match(index, /\.tpl-bold \.bottom\{bottom:252px;left:58px;right:58px;/, 'template 3 totals/bank should sit one footer band above the footer');
-    assert.match(index, /\.tpl-invoify3 \.inv3-lower\{bottom:252px;/, 'template 4 totals/bank should keep the same footer padding rhythm');
+    assert.match(index, /\.tpl-classic\{/);
   });
 
   it('uploads one browser-local PNG image and renders it through the shared LogoMark component', () => {
@@ -105,7 +97,7 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /logoDataUrl: reader\.result/, 'uploaded logo should be stored in app state/localStorage');
     assert.match(app, /stampImageDataUrl: reader\.result/, 'uploaded stamp should be stored in app state/localStorage');
     assert.match(templates, /function LogoMark\(/, 'templates should share a single logo renderer');
-    assert.equal((templates.match(/<LogoMark data=\{data\}/g) || []).length, 4, 'each template should render the same uploaded logo');
+    assert.match(templates, /<LogoMark data=\{data\} onDark \/>/, 'classic template should render the uploaded logo');
   });
 
   it('guards against oversized logos and localStorage quota failures', () => {
@@ -124,40 +116,37 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /onClick=\{\(\) => setValue\('themeColor', p\.color\)\}/);
     assert.match(templates, /'--theme': theme/);
     assert.match(templates, /'--on-theme': readableOn\(theme\)/);
-    assert.equal((templates.match(/style=\{themeVars\(data\)\}/g) || []).length, 4, 'each template should receive the shared theme variables');
+    assert.match(templates, /style=\{themeVars\(data\)\}/, 'classic template should receive the shared theme variables');
   });
 
-  it('shows all four templates after input and uses selection only as the current PNG target', () => {
+  it('keeps the UI focused on one Classic preview and one PNG save action', () => {
     assert.match(app, /const \[tplId, setTplId\] = useState\('classic'\)/);
-    assert.match(app, /4가지 디자인 자동 미리보기/);
-    assert.match(app, /className="preview-grid"/);
-    assert.match(app, /TEMPLATES\.map\(t => \{/);
-    assert.match(app, /previewRefs\.current\[t\.id\]/);
-    assert.match(app, /클릭한 디자인이 현재 PNG 저장 대상입니다\./);
-    assert.match(app, /downloadAll/);
-    assert.match(app, /4개 디자인 비교 PNG를 저장했습니다\./);
-    assert.match(app, /className="export-stack"/);
+    assert.match(app, /Classic 미리보기 · A4 PNG/);
+    assert.match(app, /오른쪽 미리보기가 그대로 PNG로 저장됩니다\./);
+    assert.match(app, /PNG 저장/);
+    assert.doesNotMatch(app, /window\.print\(\)/, 'print button should not be confused with PNG saving');
+    assert.doesNotMatch(app, /4개 디자인 비교 PNG를 저장했습니다\./);
   });
 
   it('keeps the intro usable on mobile touch browsers', () => {
     assert.match(index, /\.intro-overlay\{[\s\S]*overflow-y:auto;[\s\S]*-webkit-overflow-scrolling:touch;[\s\S]*touch-action:pan-y/);
     assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*\.intro-overlay\{[\s\S]*place-items:start center;[\s\S]*\}/);
-    assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*\.intro-template-grid\{grid-template-columns:1fr/);
     assert.match(index, /@media \(max-width: 600px\)\{[\s\S]*button,input,textarea\{touch-action:manipulation\}/);
   });
 
-  it('aligns non-classic footers with notes left, stamp right, visible logos, and sharper larger stamps', () => {
-    assert.match(templates, /function FooterNotesSignature\(/);
-    assert.equal((templates.match(/<FooterNotesSignature data=\{data\}/g) || []).length, 3, 'Invoify templates should share the same footer/signature structure');
-    assert.doesNotMatch(templates, /className="minimal-stamp"/, 'template 2 stamp should move out of the body and into the footer');
-    assert.doesNotMatch(templates, /className="bold-stamp"/, 'template 3 stamp should move out of the body and into the footer');
-    assert.match(templates, /<LogoMark data=\{data\} onDark \/>/, 'template 3 dark header logo should be recolored for visibility');
-    assert.match(index, /\.shared-doc-footer\{[\s\S]*grid-template-columns:1fr 210px;[\s\S]*\}/);
-    assert.match(index, /\.shared-footer-signature \.footer-stamp\{width:102px;height:102px;/, 'footer stamp should be larger');
-    assert.match(index, /\.stamp-image\{[\s\S]*mix-blend-mode:normal;[\s\S]*image-rendering:auto;[\s\S]*\}/, 'uploaded stamp images should not be distorted by blend/filter effects');
-    assert.match(index, /\.tpl-minimal \.head \.uploaded-logo,[\s\S]*max-height:72px;max-width:250px/);
-    assert.match(index, /\.tpl-bold \.topbar \.uploaded-logo,[\s\S]*max-height:78px;max-width:260px/);
-    assert.match(index, /\.tpl-invoify3 \.inv3-logo \.uploaded-logo,[\s\S]*max-width:245px;max-height:100px/);
+  it('supports logo and stamp crop controls without distorting uploaded pixels', () => {
+    for (const field of ['logoScale', 'logoX', 'logoY', 'stampScale', 'stampX', 'stampY']) {
+      assert.match(app, new RegExp(`${field}: `), `${field} should be persisted in DEFAULT_DATA`);
+    }
+    assert.match(app, /const mediaStyle = \(kind\) =>/);
+    assert.match(app, /resetMediaCrop/);
+    assert.match(app, /로고 크기/);
+    assert.match(app, /직인 크기/);
+    assert.match(templates, /const mediaCropStyle = \(data, kind\) =>/);
+    assert.match(templates, /className=\{'logo-crop-wrap '/);
+    assert.match(templates, /className=\{'stamp-crop-wrap '/);
+    assert.match(index, /\.logo-crop-wrap\{display:inline-grid;place-items:center;overflow:hidden/);
+    assert.match(index, /\.stamp-crop-wrap \.stamp-image\{[\s\S]*mix-blend-mode:normal;[\s\S]*image-rendering:auto/);
   });
 
   it('loads templates before the app bundle on GitHub Pages', () => {
@@ -196,8 +185,7 @@ describe('classic template visual refinements', () => {
     assert.match(templates, /function StampMark\(/);
     assert.match(templates, /stampImageDataUrl/);
     assert.match(templates, /<StampMark data=\{data\} className="classic-stamp-mark" \/>/);
-    assert.match(index, /\.tpl-classic \.classic-stamp-slot\{[\s\S]*min-height:66px;[\s\S]*\}/);
-    assert.match(index, /\.tpl-classic \.classic-stamp-slot\{min-height:86px\}/);
+    assert.match(index, /\.tpl-classic \.classic-stamp-slot\{[\s\S]*min-height:86px;/);
     assert.match(index, /\.tpl-classic \.classic-stamp-mark\{width:86px;height:86px;/);
   });
 });
