@@ -54,7 +54,8 @@ describe('privacy and repository hygiene', () => {
     assert.match(app, /const DEFAULT_NOTES = \[/);
     assert.match(app, /'공정용수는 갑측이 제공합니다\.'/);
     assert.match(app, /const LEGACY_THREE_NOTES = \[DEFAULT_NOTES\[0\], DEFAULT_NOTES\[2\], DEFAULT_NOTES\[3\]\];/);
-    assert.match(app, /return \{ \.\.\.DEFAULT_DATA, \.\.\.parsed, notes: normalizeNotes\(parsed\.notes\) \};/);
+    assert.match(app, /const normalizeData = \(input = \{\}\) => \(\{/);
+    assert.match(app, /notes: normalizeNotes\(input\.notes\)/);
     assert.match(app, /return \[notes\[0\], DEFAULT_NOTES\[1\], notes\[1\], notes\[2\]\];/);
   });
 
@@ -70,6 +71,25 @@ describe('privacy and repository hygiene', () => {
   it('uses a new localStorage key so old sensitive defaults are not reloaded', () => {
     assert.match(app, /const STORAGE_KEY = 'invoice-data-v2';/);
     assert.doesNotMatch(app, /invoice-data-v1/);
+  });
+
+  it('uses browser-local document storage for multiple saved invoices', () => {
+    assert.match(app, /const DOCUMENTS_STORAGE_KEY = 'invoice-documents-v1';/);
+    assert.match(app, /const ACTIVE_DOCUMENT_KEY = 'invoice-active-id-v1';/);
+    assert.match(app, /function loadWorkspace\(\)/);
+    assert.match(app, /const \[documents, setDocuments\] = useState\(initialWorkspace\.documents\);/);
+    assert.match(app, /const \[activeDocId, setActiveDocId\] = useState\(initialWorkspace\.activeDocId\);/);
+    assert.match(app, /localStorage\.setItem\(DOCUMENTS_STORAGE_KEY, JSON\.stringify\(nextDocuments\)\);/);
+    assert.match(app, /localStorage\.setItem\(ACTIVE_DOCUMENT_KEY, activeDocId\);/);
+    assert.match(app, /const createNewDocument = \(\) =>/);
+    assert.match(app, /const duplicateDocument = \(\) =>/);
+    assert.match(app, /const deleteCurrentDocument = \(\) =>/);
+    assert.match(app, /저장된 견적서/);
+    assert.match(app, /새 견적서/);
+    assert.match(app, /복제/);
+    assert.match(app, /이 브라우저에 자동 저장/);
+    assert.match(index, /\.document-library/);
+    assert.match(index, /\.document-select-row/);
   });
 
   it('does not hardcode email or Korean business registration numbers in app data/templates/readme', () => {
@@ -107,7 +127,7 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /file\.slice\(0, PNG_SIGNATURE\.length\)\.arrayBuffer\(\)/, 'uploaded files should be checked for a real PNG signature');
     assert.match(app, /PNG_SIGNATURE\.every\(\(byte, idx\) => header\[idx\] === byte\)/, 'PNG signature check should compare all expected bytes');
     assert.match(app, /if \(logoInputRef\.current\) logoInputRef\.current\.value = '';/, 'rejected logo uploads should clear the file input');
-    assert.match(app, /try \{\s*localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(data\)\);/s, 'localStorage persistence should be guarded');
+    assert.match(app, /try \{\s*localStorage\.setItem\(DOCUMENTS_STORAGE_KEY, JSON\.stringify\(nextDocuments\)\);/s, 'document localStorage persistence should be guarded');
     assert.match(app, /catch \{\s*setToast\(\{ type: 'err', msg: '브라우저 저장 공간이 부족합니다\.[^']*' \}\);/s, 'quota failures should show a user-visible error');
   });
 

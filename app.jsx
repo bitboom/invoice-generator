@@ -2,6 +2,8 @@
 const { useState, useMemo, useRef, useEffect, useCallback } = React;
 
 const STORAGE_KEY = 'invoice-data-v2';
+const DOCUMENTS_STORAGE_KEY = 'invoice-documents-v1';
+const ACTIVE_DOCUMENT_KEY = 'invoice-active-id-v1';
 const MAX_LOGO_BYTES = 1024 * 1024;
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 const EXPORT_SCALE = 4;
@@ -81,13 +83,61 @@ const DEFAULT_DATA = {
   ],
 };
 
-function loadData() {
+const normalizeData = (input = {}) => ({
+  ...DEFAULT_DATA,
+  ...input,
+  notes: normalizeNotes(input.notes),
+  items: Array.isArray(input.items) && input.items.length ? input.items : DEFAULT_DATA.items,
+});
+
+const makeDocumentTitle = (data) => {
+  const parts = [data.recipient, data.workName].map(v => String(v || '').trim()).filter(Boolean);
+  return parts.join(' · ') || '새 견적서';
+};
+
+const createDocument = (data = DEFAULT_DATA, overrides = {}) => {
+  const normalized = normalizeData(data);
+  const now = new Date().toISOString();
+  return {
+    id: overrides.id || `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+    title: overrides.title || makeDocumentTitle(normalized),
+    createdAt: overrides.createdAt || now,
+    updatedAt: overrides.updatedAt || now,
+    data: normalized,
+  };
+};
+
+const formatDocumentLabel = (doc) => {
+  const date = new Date(doc.updatedAt || doc.createdAt || Date.now());
+  const stamp = date.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return `${doc.title || '새 견적서'} · ${stamp}`;
+};
+
+function loadWorkspace() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_DATA;
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_DATA, ...parsed, notes: normalizeNotes(parsed.notes) };
-  } catch { return DEFAULT_DATA; }
+    const rawDocs = localStorage.getItem(DOCUMENTS_STORAGE_KEY);
+    if (rawDocs) {
+      const parsedDocs = JSON.parse(rawDocs);
+      if (Array.isArray(parsedDocs) && parsedDocs.length) {
+        const documents = parsedDocs.map(doc => ({
+          ...doc,
+          title: doc.title || makeDocumentTitle(normalizeData(doc.data)),
+          data: normalizeData(doc.data),
+        }));
+        const storedActiveId = localStorage.getItem(ACTIVE_DOCUMENT_KEY);
+        const active = documents.find(doc => doc.id === storedActiveId) || documents[0];
+        return { documents, activeDocId: active.id, data: active.data };
+      }
+    }
+
+    const rawLegacy = localStorage.getItem(STORAGE_KEY);
+    const legacyData = rawLegacy ? normalizeData(JSON.parse(rawLegacy)) : normalizeData(DEFAULT_DATA);
+    const legacyDocument = createDocument(legacyData);
+    return { documents: [legacyDocument], activeDocId: legacyDocument.id, data: legacyDocument.data };
+  } catch {
+    const fallbackDocument = createDocument(DEFAULT_DATA);
+    return { documents: [fallbackDocument], activeDocId: fallbackDocument.id, data: fallbackDocument.data };
+  }
 }
 
 const makeClassicPages = (totals) => {
@@ -126,7 +176,10 @@ const makeClassicPages = (totals) => {
 };
 
 function App() {
-  const [data, setData] = useState(loadData);
+  const initialWorkspace = useMemo(loadWorkspace, []);
+  const [documents, setDocuments] = useState(initialWorkspace.documents);
+  const [activeDocId, setActiveDocId] = useState(initialWorkspace.activeDocId);
+  const [data, setData] = useState(initialWorkspace.data);
   const [tplId] = useState('classic');
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
@@ -136,15 +189,25 @@ function App() {
   const logoInputRef = useRef(null);
   const stampInputRef = useRef(null);
 
-  // persist
+  // persist current document in this browser
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      setToast({ type: 'err', msg: '브라우저 저장 공간이 부족합니다. 로고 용량을 줄이거나 입력값을 정리해 주세요.' });
-      setTimeout(() => setToast(null), 3200);
-    }
-  }, [data]);
+    setDocuments(prevDocuments => {
+      const now = new Date().toISOString();
+      const nextDocuments = prevDocuments.map(doc => doc.id === activeDocId
+        ? { ...doc, title: makeDocumentTitle(data), updatedAt: now, data }
+        : doc
+      );
+      try {
+        localStorage.setItem(DOCUMENTS_STORAGE_KEY, JSON.stringify(nextDocuments));
+        localStorage.setItem(ACTIVE_DOCUMENT_KEY, activeDocId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch {
+        setToast({ type: 'err', msg: '브라우저 저장 공간이 부족합니다. 로고 용량을 줄이거나 입력값을 정리해 주세요.' });
+        setTimeout(() => setToast(null), 3200);
+      }
+      return nextDocuments;
+    });
+  }, [data, activeDocId]);
 
   // computed totals
   const totals = useMemo(() => {
@@ -269,9 +332,65 @@ function App() {
   };
 
   const reset = () => {
-    if (!confirm('모든 입력값을 기본값으로 초기화할까요?')) return;
-    setData(DEFAULT_DATA);
+    if (!confirm('현재 견적서의 입력값을 기본값으로 초기화할까요?')) return;
+    setData(normalizeData(DEFAULT_DATA));
     if (logoInputRef.current) logoInputRef.current.value = '';
+    if (stampInputRef.current) stampInputRef.current.value = '';
+  };
+
+  const persistDocuments = (nextDocuments, nextActiveDocId = activeDocId) => {
+    try {
+      localStorage.setItem(DOCUMENTS_STORAGE_KEY, JSON.stringify(nextDocuments));
+      localStorage.setItem(ACTIVE_DOCUMENT_KEY, nextActiveDocId);
+    } catch {
+      setToast({ type: 'err', msg: '브라우저 저장 공간이 부족합니다. 로고 용량을 줄이거나 입력값을 정리해 주세요.' });
+      setTimeout(() => setToast(null), 3200);
+    }
+  };
+
+  const switchDocument = (docId) => {
+    const doc = documents.find(item => item.id === docId);
+    if (!doc || doc.id === activeDocId) return;
+    setActiveDocId(doc.id);
+    setData(normalizeData(doc.data));
+    persistDocuments(documents, doc.id);
+  };
+
+  const createNewDocument = () => {
+    const doc = createDocument({ ...DEFAULT_DATA, date: todayKR() });
+    const nextDocuments = [doc, ...documents];
+    setDocuments(nextDocuments);
+    setActiveDocId(doc.id);
+    setData(doc.data);
+    persistDocuments(nextDocuments, doc.id);
+    setToast({ type: 'ok', msg: '새 견적서를 만들었습니다.' });
+    setTimeout(() => setToast(null), 2200);
+  };
+
+  const duplicateDocument = () => {
+    const source = normalizeData(data);
+    const doc = createDocument({ ...source, date: todayKR() }, { title: `${makeDocumentTitle(source)} 복사본` });
+    const nextDocuments = [doc, ...documents];
+    setDocuments(nextDocuments);
+    setActiveDocId(doc.id);
+    setData(doc.data);
+    persistDocuments(nextDocuments, doc.id);
+    setToast({ type: 'ok', msg: '현재 견적서를 복제했습니다.' });
+    setTimeout(() => setToast(null), 2200);
+  };
+
+  const deleteCurrentDocument = () => {
+    if (documents.length <= 1) {
+      reset();
+      return;
+    }
+    if (!confirm('현재 견적서를 삭제할까요? 이 브라우저 저장 목록에서만 삭제됩니다.')) return;
+    const nextDocuments = documents.filter(doc => doc.id !== activeDocId);
+    const nextActive = nextDocuments[0];
+    setDocuments(nextDocuments);
+    setActiveDocId(nextActive.id);
+    setData(normalizeData(nextActive.data));
+    persistDocuments(nextDocuments, nextActive.id);
   };
 
   // Download as PNG
@@ -393,6 +512,30 @@ function App() {
         </div>
         <h1>견적서</h1>
         <p className="panel-sub">입력 후 공유하거나 미리보기로 확인하세요. 데이터는 브라우저에만 남습니다.</p>
+
+        <div className="section document-library">
+          <div className="section-title">
+            저장된 견적서
+            <span style={{color:'#9a9a96',fontWeight:500,textTransform:'none',letterSpacing:0}}>
+              {documents.length}개
+            </span>
+          </div>
+          <div className="document-select-row">
+            <select value={activeDocId} onChange={e => switchDocument(e.target.value)} aria-label="저장된 견적서 선택">
+              {documents.map(doc => (
+                <option key={doc.id} value={doc.id}>{formatDocumentLabel(doc)}</option>
+              ))}
+            </select>
+            <button type="button" className="add-btn compact" onClick={createNewDocument}>새 견적서</button>
+          </div>
+          <div className="document-meta">
+            현재 견적서는 이 브라우저에 자동 저장됩니다.
+          </div>
+          <div className="document-actions">
+            <button type="button" className="add-btn compact" onClick={duplicateDocument}>복제</button>
+            <button type="button" className="add-btn compact danger" onClick={deleteCurrentDocument}>{documents.length <= 1 ? '비우기' : '삭제'}</button>
+          </div>
+        </div>
 
         {/* date */}
         <div className="section">
