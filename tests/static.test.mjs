@@ -171,7 +171,7 @@ describe('shared logo, theme, and template behavior', () => {
   });
 
   it('renders high-resolution export PNGs and can split a long classic invoice into two files', () => {
-    assert.match(app, /const EXPORT_SCALE = 3;/);
+    assert.match(app, /const EXPORT_SCALE = 4;/);
     assert.match(app, /scale: EXPORT_SCALE/);
     assert.match(app, /const CLASSIC_SINGLE_PAGE_ITEM_LIMIT = 11;/);
     assert.match(app, /const CLASSIC_SPLIT_PAGE_ONE_ITEM_LIMIT = 14;/);

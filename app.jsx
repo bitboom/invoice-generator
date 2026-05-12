@@ -4,7 +4,7 @@ const { useState, useMemo, useRef, useEffect, useCallback } = React;
 const STORAGE_KEY = 'invoice-data-v2';
 const MAX_LOGO_BYTES = 1024 * 1024;
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
-const EXPORT_SCALE = 3;
+const EXPORT_SCALE = 4;
 const CLASSIC_SINGLE_PAGE_ITEM_LIMIT = 11;
 const CLASSIC_SPLIT_PAGE_ONE_ITEM_LIMIT = 14;
 
