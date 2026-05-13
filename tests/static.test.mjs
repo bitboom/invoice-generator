@@ -82,14 +82,18 @@ describe('privacy and repository hygiene', () => {
     assert.match(app, /localStorage\.setItem\(DOCUMENTS_STORAGE_KEY, JSON\.stringify\(nextDocuments\)\);/);
     assert.match(app, /localStorage\.setItem\(ACTIVE_DOCUMENT_KEY, activeDocId\);/);
     assert.match(app, /const createNewDocument = \(\) =>/);
+    assert.match(app, /const renameDocument = \(docId\) =>/);
     assert.match(app, /const duplicateDocument = \(\) =>/);
     assert.match(app, /const deleteCurrentDocument = \(\) =>/);
     assert.match(app, /저장된 견적서/);
-    assert.match(app, /새 견적서/);
+    assert.match(app, /새 견적서 이름을 입력하세요\./);
+    assert.match(app, /이름 변경/);
     assert.match(app, /복제/);
     assert.match(app, /이 브라우저에 자동 저장/);
     assert.match(index, /\.document-library/);
-    assert.match(index, /\.document-select-row/);
+    assert.match(index, /\.document-list/);
+    assert.match(index, /\.document-list-item\.active/);
+    assert.match(index, /\.new-document-btn/);
   });
 
   it('does not hardcode email or Korean business registration numbers in app data/templates/readme', () => {

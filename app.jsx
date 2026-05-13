@@ -95,12 +95,16 @@ const makeDocumentTitle = (data) => {
   return parts.join(' · ') || '새 견적서';
 };
 
+const sanitizeDocumentTitle = (title) => String(title || '').trim().slice(0, 80);
+
 const createDocument = (data = DEFAULT_DATA, overrides = {}) => {
   const normalized = normalizeData(data);
   const now = new Date().toISOString();
+  const providedTitle = sanitizeDocumentTitle(overrides.title);
   return {
     id: overrides.id || `inv_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
-    title: overrides.title || makeDocumentTitle(normalized),
+    title: providedTitle || makeDocumentTitle(normalized),
+    manualTitle: Boolean(providedTitle || overrides.manualTitle),
     createdAt: overrides.createdAt || now,
     updatedAt: overrides.updatedAt || now,
     data: normalized,
@@ -113,17 +117,27 @@ const formatDocumentLabel = (doc) => {
   return `${doc.title || '새 견적서'} · ${stamp}`;
 };
 
+const formatDocumentSubtitle = (doc) => {
+  const normalized = normalizeData(doc.data);
+  const parts = [normalized.recipient, normalized.workName].map(v => String(v || '').trim()).filter(Boolean);
+  return parts.join(' · ') || '내용 미입력';
+};
+
 function loadWorkspace() {
   try {
     const rawDocs = localStorage.getItem(DOCUMENTS_STORAGE_KEY);
     if (rawDocs) {
       const parsedDocs = JSON.parse(rawDocs);
       if (Array.isArray(parsedDocs) && parsedDocs.length) {
-        const documents = parsedDocs.map(doc => ({
-          ...doc,
-          title: doc.title || makeDocumentTitle(normalizeData(doc.data)),
-          data: normalizeData(doc.data),
-        }));
+        const documents = parsedDocs.map(doc => {
+          const normalized = normalizeData(doc.data);
+          return {
+            ...doc,
+            title: sanitizeDocumentTitle(doc.title) || makeDocumentTitle(normalized),
+            manualTitle: Boolean(doc.manualTitle),
+            data: normalized,
+          };
+        });
         const storedActiveId = localStorage.getItem(ACTIVE_DOCUMENT_KEY);
         const active = documents.find(doc => doc.id === storedActiveId) || documents[0];
         return { documents, activeDocId: active.id, data: active.data };
@@ -194,7 +208,12 @@ function App() {
     setDocuments(prevDocuments => {
       const now = new Date().toISOString();
       const nextDocuments = prevDocuments.map(doc => doc.id === activeDocId
-        ? { ...doc, title: makeDocumentTitle(data), updatedAt: now, data }
+        ? {
+            ...doc,
+            title: doc.manualTitle ? doc.title : makeDocumentTitle(data),
+            updatedAt: now,
+            data,
+          }
         : doc
       );
       try {
@@ -356,20 +375,52 @@ function App() {
     persistDocuments(documents, doc.id);
   };
 
+  const askDocumentTitle = (message, initialValue = '') => {
+    const value = prompt(message, initialValue);
+    if (value === null) return null;
+    const title = sanitizeDocumentTitle(value);
+    if (!title) {
+      setToast({ type: 'err', msg: '견적서 이름을 입력해 주세요.' });
+      setTimeout(() => setToast(null), 2200);
+      return null;
+    }
+    return title;
+  };
+
   const createNewDocument = () => {
-    const doc = createDocument({ ...DEFAULT_DATA, date: todayKR() });
+    const title = askDocumentTitle('새 견적서 이름을 입력하세요.', '');
+    if (!title) return;
+    const doc = createDocument({ ...DEFAULT_DATA, date: todayKR() }, { title, manualTitle: true });
     const nextDocuments = [doc, ...documents];
     setDocuments(nextDocuments);
     setActiveDocId(doc.id);
     setData(doc.data);
     persistDocuments(nextDocuments, doc.id);
-    setToast({ type: 'ok', msg: '새 견적서를 만들었습니다.' });
+    setToast({ type: 'ok', msg: `‘${title}’ 견적서를 만들었습니다.` });
+    setTimeout(() => setToast(null), 2200);
+  };
+
+  const renameDocument = (docId) => {
+    const doc = documents.find(item => item.id === docId);
+    if (!doc) return;
+    const title = askDocumentTitle('견적서 이름을 변경하세요.', doc.title || '새 견적서');
+    if (!title) return;
+    const now = new Date().toISOString();
+    const nextDocuments = documents.map(item => item.id === docId
+      ? { ...item, title, manualTitle: true, updatedAt: now }
+      : item
+    );
+    setDocuments(nextDocuments);
+    persistDocuments(nextDocuments, activeDocId);
+    setToast({ type: 'ok', msg: '견적서 이름을 변경했습니다.' });
     setTimeout(() => setToast(null), 2200);
   };
 
   const duplicateDocument = () => {
     const source = normalizeData(data);
-    const doc = createDocument({ ...source, date: todayKR() }, { title: `${makeDocumentTitle(source)} 복사본` });
+    const currentDoc = documents.find(doc => doc.id === activeDocId);
+    const title = `${currentDoc?.title || makeDocumentTitle(source)} 복사본`;
+    const doc = createDocument({ ...source, date: todayKR() }, { title, manualTitle: true });
     const nextDocuments = [doc, ...documents];
     setDocuments(nextDocuments);
     setActiveDocId(doc.id);
@@ -379,19 +430,21 @@ function App() {
     setTimeout(() => setToast(null), 2200);
   };
 
-  const deleteCurrentDocument = () => {
+  const deleteDocument = (docId) => {
     if (documents.length <= 1) {
       reset();
       return;
     }
-    if (!confirm('현재 견적서를 삭제할까요? 이 브라우저 저장 목록에서만 삭제됩니다.')) return;
-    const nextDocuments = documents.filter(doc => doc.id !== activeDocId);
-    const nextActive = nextDocuments[0];
+    if (!confirm('이 견적서를 삭제할까요? 이 브라우저 저장 목록에서만 삭제됩니다.')) return;
+    const nextDocuments = documents.filter(doc => doc.id !== docId);
+    const nextActive = activeDocId === docId ? nextDocuments[0] : documents.find(doc => doc.id === activeDocId);
     setDocuments(nextDocuments);
     setActiveDocId(nextActive.id);
     setData(normalizeData(nextActive.data));
     persistDocuments(nextDocuments, nextActive.id);
   };
+
+  const deleteCurrentDocument = () => deleteDocument(activeDocId);
 
   // Download as PNG
   const renderCanvas = useCallback((node) => html2canvas(node, {
@@ -520,20 +573,29 @@ function App() {
               {documents.length}개
             </span>
           </div>
-          <div className="document-select-row">
-            <select value={activeDocId} onChange={e => switchDocument(e.target.value)} aria-label="저장된 견적서 선택">
-              {documents.map(doc => (
-                <option key={doc.id} value={doc.id}>{formatDocumentLabel(doc)}</option>
-              ))}
-            </select>
-            <button type="button" className="add-btn compact" onClick={createNewDocument}>새 견적서</button>
+          <button type="button" className="add-btn new-document-btn" onClick={createNewDocument}>＋ 새 견적서</button>
+          <div className="document-list" aria-label="저장된 견적서 목록">
+            {documents.map(doc => (
+              <div key={doc.id} className={'document-list-item ' + (doc.id === activeDocId ? 'active' : '')}>
+                <button type="button" className="document-open-btn" onClick={() => switchDocument(doc.id)} aria-current={doc.id === activeDocId ? 'true' : undefined}>
+                  <strong>{doc.title || '새 견적서'}</strong>
+                  <span>{formatDocumentSubtitle(doc)}</span>
+                  <small>{formatDocumentLabel(doc).split(' · ').slice(-1)[0]}</small>
+                </button>
+                <div className="document-row-actions">
+                  <button type="button" className="mini-doc-btn" onClick={() => renameDocument(doc.id)}>이름 변경</button>
+                  <button type="button" className="mini-doc-btn danger" onClick={() => deleteDocument(doc.id)}>{documents.length <= 1 ? '비우기' : '삭제'}</button>
+                </div>
+              </div>
+            ))}
           </div>
           <div className="document-meta">
-            현재 견적서는 이 브라우저에 자동 저장됩니다.
+            저장된 견적서가 목록으로 보이고, 선택한 견적서는 이 브라우저에 자동 저장됩니다.
           </div>
           <div className="document-actions">
+            <button type="button" className="add-btn compact" onClick={() => renameDocument(activeDocId)}>현재 이름 변경</button>
             <button type="button" className="add-btn compact" onClick={duplicateDocument}>복제</button>
-            <button type="button" className="add-btn compact danger" onClick={deleteCurrentDocument}>{documents.length <= 1 ? '비우기' : '삭제'}</button>
+            <button type="button" className="add-btn compact danger" onClick={deleteCurrentDocument}>{documents.length <= 1 ? '비우기' : '현재 삭제'}</button>
           </div>
         </div>
 
