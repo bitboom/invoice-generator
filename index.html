@@ -471,6 +471,9 @@
   .mini-doc-btn.danger{color:#b91c1c;border-color:#efcaca;background:#fffafa}
   .document-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   .document-meta{font-size:11px;line-height:1.45;color:var(--muted);margin-top:8px}
+  .backup-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #eee4d4}
+  .backup-title{width:100%;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6f6d66}
+  .backup-privacy{margin:8px 0 0;font-size:11px;line-height:1.45;color:#8a6b1f}
 
   /* ---------- Sticky action bar ---------- */
   .actionbar{
@@ -592,6 +595,11 @@
     display:grid;
     place-items:start center;
   }
+  .backup-modal-card{width:min(720px, 100%)}
+  .backup-modal-body{display:flex;flex-direction:column;gap:12px;padding:16px 18px;background:var(--bg-2)}
+  .backup-textarea{width:100%;min-height:320px;resize:vertical;border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;color:var(--ink)}
+  .backup-textarea:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 2px rgba(10,10,10,.08)}
+  .backup-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 
   /* ---------- Stage chrome ---------- */
   .stage-toolbar{

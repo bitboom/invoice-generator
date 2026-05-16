@@ -96,6 +96,27 @@ describe('privacy and repository hygiene', () => {
     assert.match(index, /\.new-document-btn/);
   });
 
+  it('exports and imports saved invoices through readable markdown backup text', () => {
+    assert.match(app, /const BACKUP_TYPE = 'invoice-generator-backup';/);
+    assert.match(app, /const BACKUP_CODE_BLOCK = 'invoice-generator-backup-v1';/);
+    assert.match(app, /const buildBackupMarkdown = \(\) =>/);
+    assert.match(app, /BACKUP_CODE_BLOCK/);
+    assert.match(app, /JSON\.stringify\(payload, null, 2\)/);
+    assert.match(app, /navigator\.clipboard\.writeText\(backupText\)/);
+    assert.match(app, /백업 텍스트가 복사되었습니다/);
+    assert.match(app, /const parseBackupText = \(text\) =>/);
+    assert.match(app, /source\.match\(new RegExp\('```' \+ BACKUP_CODE_BLOCK/);
+    assert.match(app, /codeBlockMatch \? codeBlockMatch\[1\]\.trim\(\) : source/);
+    assert.match(app, /normalizeData\(doc\.data\)/);
+    assert.match(app, /setDocuments\(\[\.\.\.importedDocuments, \.\.\.documents\]\);/);
+    assert.match(app, /백업 텍스트 복사/);
+    assert.match(app, /백업 텍스트 불러오기/);
+    assert.match(app, /백업 텍스트 붙여넣기/);
+    assert.match(app, /개인정보와 계좌 정보/);
+    assert.match(index, /\.backup-actions/);
+    assert.match(index, /\.backup-textarea/);
+  });
+
   it('does not hardcode email or Korean business registration numbers in app data/templates/readme', () => {
     for (const [file, content] of Object.entries({ 'app.jsx': app, 'templates.jsx': templates, 'README.md': readme })) {
       assert.doesNotMatch(content, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i, `${file} should not contain a concrete email address`);

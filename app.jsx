@@ -4,6 +4,8 @@ const { useState, useMemo, useRef, useEffect, useCallback } = React;
 const STORAGE_KEY = 'invoice-data-v2';
 const DOCUMENTS_STORAGE_KEY = 'invoice-documents-v1';
 const ACTIVE_DOCUMENT_KEY = 'invoice-active-id-v1';
+const BACKUP_TYPE = 'invoice-generator-backup';
+const BACKUP_CODE_BLOCK = 'invoice-generator-backup-v1';
 const MAX_LOGO_BYTES = 1024 * 1024;
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 const EXPORT_SCALE = 4;
@@ -154,6 +156,31 @@ function loadWorkspace() {
   }
 }
 
+const parseBackupText = (text) => {
+  const source = String(text || '').trim();
+  if (!source) throw new Error('백업 텍스트가 비어 있습니다.');
+
+  const codeBlockMatch = source.match(new RegExp('```' + BACKUP_CODE_BLOCK + '\\s*([\\s\\S]*?)```', 'm'));
+  const jsonText = codeBlockMatch ? codeBlockMatch[1].trim() : source;
+  const payload = JSON.parse(jsonText);
+
+  if (payload?.type !== BACKUP_TYPE || payload?.version !== 1 || !Array.isArray(payload.documents)) {
+    throw new Error('지원하지 않는 백업 형식입니다.');
+  }
+  if (!payload.documents.length) throw new Error('불러올 견적서가 없습니다.');
+
+  return payload.documents.map(doc => {
+    const normalized = normalizeData(doc.data);
+    const title = sanitizeDocumentTitle(doc.title) || makeDocumentTitle(normalized);
+    return createDocument(normalized, {
+      title: `${title} (불러옴)`,
+      manualTitle: true,
+      createdAt: doc.createdAt,
+      updatedAt: new Date().toISOString(),
+    });
+  });
+};
+
 const makeClassicPages = (totals) => {
   const items = totals.items || [];
   if (items.length <= CLASSIC_SINGLE_PAGE_ITEM_LIMIT) {
@@ -199,6 +226,9 @@ function App() {
   const [toast, setToast] = useState(null);
   const [showIntro, setShowIntro] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [backupCopyText, setBackupCopyText] = useState('');
   const exportRefs = useRef({});
   const logoInputRef = useRef(null);
   const stampInputRef = useRef(null);
@@ -446,6 +476,71 @@ function App() {
 
   const deleteCurrentDocument = () => deleteDocument(activeDocId);
 
+  const buildBackupMarkdown = () => {
+    const exportedAt = new Date();
+    const activeDocument = documents.find(doc => doc.id === activeDocId) || documents[0];
+    const payload = {
+      type: BACKUP_TYPE,
+      version: 1,
+      exportedAt: exportedAt.toISOString(),
+      activeDocId,
+      documents,
+    };
+
+    return [
+      '# 견적서 백업',
+      '',
+      '- 앱: Invoice Generator',
+      `- 백업일시: ${exportedAt.toLocaleString('ko-KR')}`,
+      `- 견적서 수: ${documents.length}개`,
+      `- 현재 선택된 견적서: ${activeDocument?.title || '새 견적서'}`,
+      '',
+      '이 백업 텍스트에는 견적서의 개인정보와 계좌 정보, 로고/직인 이미지가 포함될 수 있습니다.',
+      '신뢰할 수 있는 곳에만 보관하고, 아래 코드블록은 지우거나 수정하지 마세요.',
+      '',
+      `\`\`\`${BACKUP_CODE_BLOCK}`,
+      JSON.stringify(payload, null, 2),
+      '```',
+      '',
+    ].join('\n');
+  };
+
+  const exportBackupText = async () => {
+    const backupText = buildBackupMarkdown();
+    try {
+      await navigator.clipboard.writeText(backupText);
+      setToast({ type: 'ok', msg: '백업 텍스트가 복사되었습니다. 메모장이나 카톡에 붙여넣어 보관하세요.' });
+      setTimeout(() => setToast(null), 3200);
+    } catch {
+      setBackupCopyText(backupText);
+      setToast({ type: 'err', msg: '자동 복사에 실패했습니다. 아래 텍스트를 직접 복사해 주세요.' });
+      setTimeout(() => setToast(null), 3200);
+    }
+  };
+
+  const openImportBackup = () => {
+    setImportText('');
+    setImportOpen(true);
+  };
+
+  const importBackupText = () => {
+    try {
+      const importedDocuments = parseBackupText(importText);
+      const firstImported = importedDocuments[0];
+      setDocuments([...importedDocuments, ...documents]);
+      setActiveDocId(firstImported.id);
+      setData(normalizeData(firstImported.data));
+      persistDocuments([...importedDocuments, ...documents], firstImported.id);
+      setImportOpen(false);
+      setImportText('');
+      setToast({ type: 'ok', msg: `견적서 ${importedDocuments.length}개를 불러왔습니다.` });
+      setTimeout(() => setToast(null), 2600);
+    } catch {
+      setToast({ type: 'err', msg: '백업 텍스트를 읽을 수 없습니다. 전체 내용을 다시 붙여넣어 주세요.' });
+      setTimeout(() => setToast(null), 3200);
+    }
+  };
+
   // Download as PNG
   const renderCanvas = useCallback((node) => html2canvas(node, {
     scale: EXPORT_SCALE,
@@ -597,6 +692,12 @@ function App() {
             <button type="button" className="add-btn compact" onClick={duplicateDocument}>복제</button>
             <button type="button" className="add-btn compact danger" onClick={deleteCurrentDocument}>{documents.length <= 1 ? '비우기' : '현재 삭제'}</button>
           </div>
+          <div className="backup-actions" aria-label="백업과 이동">
+            <div className="backup-title">백업 / 이동</div>
+            <button type="button" className="add-btn compact" onClick={exportBackupText}>백업 텍스트 복사</button>
+            <button type="button" className="add-btn compact" onClick={openImportBackup}>백업 텍스트 불러오기</button>
+          </div>
+          <p className="backup-privacy">백업 텍스트에는 개인정보와 계좌 정보가 포함될 수 있습니다.</p>
         </div>
 
         {/* date */}
@@ -833,6 +934,53 @@ function App() {
                     {page.totalPages > 1 && <span className="modal-page-label">{page.pageNumber} / {page.totalPages}</span>}
                   </div>
                 ))}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {importOpen && (
+        <div className="preview-modal" role="dialog" aria-modal="true" aria-label="백업 텍스트 붙여넣기" onClick={() => setImportOpen(false)}>
+          <section className="preview-modal-card backup-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="preview-modal-head">
+              <div>
+                <b>백업 텍스트 붙여넣기</b>
+                <span>이전에 복사해 둔 견적서 백업 텍스트를 아래에 붙여넣으세요. 기존 목록은 지우지 않고 앞쪽에 추가됩니다.</span>
+              </div>
+              <button type="button" className="preview-close" onClick={() => setImportOpen(false)} aria-label="닫기">×</button>
+            </div>
+            <div className="backup-modal-body">
+              <textarea
+                className="backup-textarea"
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                placeholder="마크다운 백업 텍스트 전체를 붙여넣으세요."
+              />
+              <p className="backup-privacy">불러오기 텍스트에는 개인정보와 계좌 정보가 포함될 수 있습니다. 신뢰할 수 있는 백업만 사용하세요.</p>
+              <div className="backup-modal-actions">
+                <button type="button" className="add-btn compact" onClick={() => setImportOpen(false)}>취소</button>
+                <button type="button" className="add-btn compact" onClick={importBackupText}>불러오기</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {backupCopyText && (
+        <div className="preview-modal" role="dialog" aria-modal="true" aria-label="백업 텍스트 직접 복사" onClick={() => setBackupCopyText('')}>
+          <section className="preview-modal-card backup-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="preview-modal-head">
+              <div>
+                <b>백업 텍스트 직접 복사</b>
+                <span>자동 복사가 막힌 브라우저입니다. 아래 텍스트를 전체 선택해서 복사하세요.</span>
+              </div>
+              <button type="button" className="preview-close" onClick={() => setBackupCopyText('')} aria-label="닫기">×</button>
+            </div>
+            <div className="backup-modal-body">
+              <textarea className="backup-textarea" value={backupCopyText} readOnly onFocus={e => e.target.select()} />
+              <div className="backup-modal-actions">
+                <button type="button" className="add-btn compact" onClick={() => setBackupCopyText('')}>닫기</button>
               </div>
             </div>
           </section>
