@@ -160,9 +160,22 @@ const parseBackupText = (text) => {
   const source = String(text || '').trim();
   if (!source) throw new Error('백업 데이터가 비어 있습니다.');
 
-  const codeBlockMatch = source.match(new RegExp('```' + BACKUP_CODE_BLOCK + '\\s*([\\s\\S]*?)```', 'm'));
-  const jsonText = codeBlockMatch ? codeBlockMatch[1].trim() : source;
-  const payload = JSON.parse(jsonText);
+  const fenceStartMarker = '```' + BACKUP_CODE_BLOCK;
+  const codeBlockMatch = source.match(new RegExp(fenceStartMarker + '\\s*([\\s\\S]*?)```', 'm'));
+  const fenceStart = source.indexOf(fenceStartMarker);
+  const jsonText = codeBlockMatch
+    ? codeBlockMatch[1].trim()
+    : (fenceStart >= 0 ? source.slice(fenceStart + fenceStartMarker.length).trim() : source);
+
+  let payload;
+  try {
+    payload = JSON.parse(jsonText);
+  } catch {
+    if (fenceStart >= 0 && !codeBlockMatch) {
+      throw new Error('백업 데이터가 끝까지 복사되지 않았습니다. 코드블록 마지막 ```까지 전체 내용을 다시 붙여넣어 주세요.');
+    }
+    throw new Error('백업 데이터의 JSON을 읽을 수 없습니다. 전체 내용을 다시 확인해 주세요.');
+  }
 
   if (payload?.type !== BACKUP_TYPE || payload?.version !== 1 || !Array.isArray(payload.documents)) {
     throw new Error('지원하지 않는 백업 형식입니다.');
@@ -505,6 +518,19 @@ function App() {
     ].join('\n');
   };
 
+  const makeBackupFilename = () => {
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
+    return `invoice-generator-backup-${stamp}.txt`;
+  };
+
+  const saveBackupFile = async () => {
+    const backupText = buildBackupMarkdown();
+    const blob = new Blob([backupText], { type: 'text/plain;charset=utf-8' });
+    await saveBlob(blob, makeBackupFilename());
+    setToast({ type: 'ok', msg: '백업 파일을 저장했습니다. 이 파일을 보관하거나 전송하세요.' });
+    setTimeout(() => setToast(null), 3200);
+  };
+
   const exportBackupText = async () => {
     const backupText = buildBackupMarkdown();
     try {
@@ -535,9 +561,9 @@ function App() {
       setImportText('');
       setToast({ type: 'ok', msg: `견적서 ${importedDocuments.length}개를 불러왔습니다.` });
       setTimeout(() => setToast(null), 2600);
-    } catch {
-      setToast({ type: 'err', msg: '백업 데이터를 읽을 수 없습니다. 전체 내용을 다시 붙여넣어 주세요.' });
-      setTimeout(() => setToast(null), 3200);
+    } catch (error) {
+      setToast({ type: 'err', msg: error?.message || '백업 데이터를 읽을 수 없습니다. 전체 내용을 다시 붙여넣어 주세요.' });
+      setTimeout(() => setToast(null), 4200);
     }
   };
 
@@ -694,10 +720,11 @@ function App() {
           </div>
           <div className="backup-actions" aria-label="백업 및 복원">
             <div className="backup-title">백업 및 복원</div>
+            <button type="button" className="add-btn compact" onClick={saveBackupFile}>백업 파일 저장</button>
             <button type="button" className="add-btn compact" onClick={exportBackupText}>백업 데이터 복사</button>
             <button type="button" className="add-btn compact" onClick={openImportBackup}>백업 데이터 불러오기</button>
           </div>
-          <p className="backup-privacy">백업 데이터에는 개인정보와 계좌 정보가 포함될 수 있습니다.</p>
+          <p className="backup-privacy">로고/직인이 포함되면 백업 데이터가 길어질 수 있습니다. 전송할 때는 복사보다 파일 저장을 권장합니다.</p>
         </div>
 
         {/* date */}

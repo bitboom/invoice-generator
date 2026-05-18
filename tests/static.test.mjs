@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -16,6 +17,36 @@ const sourceFiles = {
   'templates.jsx': templates,
   'index.html': index,
   'README.md': readme,
+};
+
+const extractFunctionExpression = (source, name, nextMarker) => {
+  const start = source.indexOf(`const ${name} = `);
+  const end = source.indexOf(nextMarker, start);
+  assert.ok(start >= 0 && end > start, `${name} source must exist`);
+  return source.slice(start, end).replace(`const ${name} =`, `${name} =`);
+};
+
+const runParseBackupText = (text) => {
+  const sandbox = {
+    text,
+    parsed: null,
+    parseBackupText: undefined,
+    BACKUP_CODE_BLOCK: 'invoice-generator-backup-v1',
+    BACKUP_TYPE: 'invoice-generator-backup',
+    normalizeData: data => data,
+    sanitizeDocumentTitle: title => String(title || '').trim(),
+    makeDocumentTitle: () => '무제 견적서',
+    createDocument: (data, options = {}) => ({
+      id: `generated-${options.title || 'untitled'}`,
+      title: options.title,
+      manualTitle: Boolean(options.manualTitle),
+      createdAt: options.createdAt,
+      updatedAt: options.updatedAt,
+      data,
+    }),
+  };
+  vm.runInNewContext(`${extractFunctionExpression(app, 'parseBackupText', 'const makeClassicPages')}\nparsed = parseBackupText(text);`, sandbox);
+  return sandbox.parsed;
 };
 
 const extractDefaultDataBody = () => {
@@ -105,18 +136,94 @@ describe('privacy and repository hygiene', () => {
     assert.match(app, /navigator\.clipboard\.writeText\(backupText\)/);
     assert.match(app, /백업 데이터가 복사되었습니다/);
     assert.match(app, /const parseBackupText = \(text\) =>/);
-    assert.match(app, /source\.match\(new RegExp\('```' \+ BACKUP_CODE_BLOCK/);
-    assert.match(app, /codeBlockMatch \? codeBlockMatch\[1\]\.trim\(\) : source/);
+    assert.match(app, /const fenceStartMarker = '```' \+ BACKUP_CODE_BLOCK/);
+    assert.match(app, /source\.match\(new RegExp\(fenceStartMarker/);
+    assert.match(app, /fenceStart >= 0 \? source\.slice\(fenceStart \+ fenceStartMarker\.length\)\.trim\(\) : source/);
+    assert.match(app, /백업 데이터가 끝까지 복사되지 않았습니다/);
+    assert.match(app, /error\?\.message \|\| '백업 데이터를 읽을 수 없습니다/);
     assert.match(app, /normalizeData\(doc\.data\)/);
     assert.match(app, /setDocuments\(\[\.\.\.importedDocuments, \.\.\.documents\]\);/);
     assert.doesNotMatch(app, /\$\{title\} \(불러옴\)/);
     assert.match(app, /백업 및 복원/);
+    assert.match(app, /const saveBackupFile = async \(\) =>/);
+    assert.match(app, /new Blob\(\[backupText\], \{ type: 'text\/plain;charset=utf-8' \}\)/);
+    assert.match(app, /invoice-generator-backup-\$\{stamp\}\.txt/);
+    assert.match(app, /saveBlob\(blob, makeBackupFilename\(\)\)/);
+    assert.match(app, /백업 파일 저장/);
+    assert.match(app, /파일 저장을 권장합니다/);
     assert.match(app, /백업 데이터 복사/);
     assert.match(app, /백업 데이터 불러오기/);
     assert.match(app, /백업 데이터 붙여넣기/);
     assert.match(app, /개인정보와 계좌 정보/);
     assert.match(index, /\.backup-actions/);
     assert.match(index, /\.backup-textarea/);
+  });
+
+  it('round-trips a backup file longer than the failed chat attachment', () => {
+    const oversizedDataUrl = `data:image/png;base64,${'A'.repeat(180_000)}`;
+    const payload = {
+      type: 'invoice-generator-backup',
+      version: 1,
+      exportedAt: '2026-05-18T00:00:00.000Z',
+      activeDocId: 'doc-long-1',
+      documents: [
+        {
+          id: 'doc-long-1',
+          title: '긴 백업 테스트',
+          manualTitle: true,
+          createdAt: '2026-05-18T00:00:00.000Z',
+          updatedAt: '2026-05-18T00:00:00.000Z',
+          data: {
+            companyName: '',
+            address: '',
+            phone: '',
+            bizNumber: '',
+            email: '',
+            bankName: '',
+            bankAccount: '',
+            depositor: '',
+            logoDataUrl: oversizedDataUrl,
+            stampImageDataUrl: oversizedDataUrl,
+            items: Array.from({ length: 20 }, (_, index) => ({
+              name: `테스트 항목 ${index + 1}`,
+              unitPrice: String((index + 1) * 1000),
+              qty: 1,
+              total: 0,
+            })),
+          },
+        },
+      ],
+    };
+    const markdown = [
+      '# 견적서 백업',
+      '',
+      '```invoice-generator-backup-v1',
+      JSON.stringify(payload, null, 2),
+      '```',
+      '',
+    ].join('\n');
+
+    assert.ok(Buffer.byteLength(markdown, 'utf8') > 250_000, 'test backup should be much larger than the truncated chat attachment');
+    const restored = runParseBackupText(markdown);
+    assert.equal(restored.length, 1);
+    assert.equal(restored[0].title, '긴 백업 테스트');
+    assert.equal(restored[0].data.logoDataUrl.length, oversizedDataUrl.length);
+    assert.equal(restored[0].data.stampImageDataUrl.length, oversizedDataUrl.length);
+    assert.equal(restored[0].data.items.length, 20);
+  });
+
+  it('rejects a truncated long backup with the specific incomplete-copy message', () => {
+    const truncated = [
+      '# 견적서 백업',
+      '',
+      '```invoice-generator-backup-v1',
+      '{"type":"invoice-generator-backup","version":1,"documents":[{"data":{"logoDataUrl":"data:image/png;base64,AAAA',
+    ].join('\n');
+
+    assert.throws(
+      () => runParseBackupText(truncated),
+      /백업 데이터가 끝까지 복사되지 않았습니다/,
+    );
   });
 
   it('does not hardcode email or Korean business registration numbers in app data/templates/readme', () => {
