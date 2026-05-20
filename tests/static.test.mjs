@@ -354,14 +354,17 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(index, /\.preview-page-stack/);
   });
 
-  it('lets users reorder line items in the editor', () => {
+  it('lets users reorder line items in the editor without collapsing the item-name field', () => {
     assert.match(app, /const moveItem = \(idx, direction\) =>/);
     assert.match(app, /\[items\[idx\], items\[target\]\] = \[items\[target\], items\[idx\]\];/);
     assert.match(app, /aria-label="위로 이동"/);
     assert.match(app, /aria-label="아래로 이동"/);
     assert.match(index, /\.reorder-controls/);
     assert.match(index, /\.mini-icon-btn/);
-    assert.match(index, /\.item-row\{[\s\S]*grid-template-columns: 1fr 80px 60px 90px 52px 28px/);
+    assert.match(index, /--editor-width: clamp\(560px, 50vw, 720px\)/);
+    assert.match(index, /\.app\{[\s\S]*grid-template-columns: var\(--editor-width\)/);
+    assert.match(index, /\.actionbar\{[\s\S]*width:var\(--editor-width\)/);
+    assert.match(index, /\.item-row\{[\s\S]*grid-template-columns: minmax\(160px, 1fr\) 76px 56px 84px 48px 28px/);
   });
 
   it('loads templates before the app bundle on GitHub Pages', () => {
