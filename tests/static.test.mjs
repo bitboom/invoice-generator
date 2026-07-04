@@ -339,8 +339,13 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /showFooter: true/);
     assert.doesNotMatch(app, /showFooter: false/);
     assert.match(app, /invoice_\$\{datePart\}_p\$\{pageNumber\}\.png/);
+    assert.match(app, /invoice_\$\{datePart\}_all\.png/);
+    assert.match(app, /const combinePageCanvases = \(canvases\) =>/);
+    assert.match(app, /canvases\.reduce\(\(sum, canvas\) => sum \+ canvas\.height, 0\)/);
     assert.match(app, /for \(const \[idx, node\] of nodes\.entries\(\)\)/);
-    assert.match(app, /PNG \$\{files\.length\}장/);
+    assert.match(app, /const sharedExports = exports\.length > 1/);
+    assert.match(app, /combinePageCanvases\(exports\.map\(item => item\.canvas\)\)/);
+    assert.match(app, /text: exports\.length > 1 \? `인보이스 PNG \$\{exports\.length\}페이지 통합본` : '인보이스 PNG'/);
     assert.match(app, /preview-page-stack/);
     assert.match(templates, /classic-footer-page-number/);
     assert.match(templates, /\{pageNumber\} \/ \{totalPages\}/);

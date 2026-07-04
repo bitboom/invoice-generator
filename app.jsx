@@ -229,6 +229,30 @@ const makeClassicPages = (totals) => {
   ];
 };
 
+const combinePageCanvases = (canvases) => {
+  if (!canvases.length) return null;
+  if (canvases.length === 1) return canvases[0];
+
+  const width = Math.max(...canvases.map(canvas => canvas.width));
+  const height = canvases.reduce((sum, canvas) => sum + canvas.height, 0);
+  const combinedCanvas = document.createElement('canvas');
+  combinedCanvas.width = width;
+  combinedCanvas.height = height;
+
+  const ctx = combinedCanvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  let y = 0;
+  canvases.forEach(canvas => {
+    const x = Math.floor((width - canvas.width) / 2);
+    ctx.drawImage(canvas, x, y);
+    y += canvas.height;
+  });
+
+  return combinedCanvas;
+};
+
 function App() {
   const initialWorkspace = useMemo(loadWorkspace, []);
   const [documents, setDocuments] = useState(initialWorkspace.documents);
@@ -603,17 +627,16 @@ function App() {
     setTimeout(() => { URL.revokeObjectURL(url); resolve(); }, 400);
   });
 
-  const makePngBlob = useCallback(async (node) => {
-    const canvas = await renderCanvas(node);
-    return canvasToBlob(canvas);
-  }, [renderCanvas]);
-
   const currentInvoiceNodes = () => invoicePages
     .map(page => exportRefs.current[page.id]?.querySelector('.invoice'))
     .filter(Boolean);
   const currentFilename = (pageNumber = 1, totalPages = 1) => {
     const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
     return totalPages > 1 ? `invoice_${datePart}_p${pageNumber}.png` : `invoice_${datePart}.png`;
+  };
+  const currentCombinedFilename = () => {
+    const datePart = data.date.replace(/[^0-9]/g,'').slice(0,8) || 'untitled';
+    return `invoice_${datePart}_all.png`;
   };
 
   const sharePng = useCallback(async () => {
@@ -625,17 +648,28 @@ function App() {
       for (const [idx, node] of nodes.entries()) {
         const page = invoicePages[idx] || { pageNumber: idx + 1, totalPages: nodes.length };
         const filename = currentFilename(page.pageNumber, page.totalPages);
-        const blob = await makePngBlob(node);
-        exports.push({ blob, file: new File([blob], filename, { type: 'image/png' }), filename });
+        const canvas = await renderCanvas(node);
+        const blob = await canvasToBlob(canvas);
+        exports.push({ canvas, blob, file: new File([blob], filename, { type: 'image/png' }), filename });
       }
-      const files = exports.map(item => item.file);
-      const shareData = { title: 'Invoice PNG', text: files.length > 1 ? `인보이스 PNG ${files.length}장` : '인보이스 PNG', files };
+      const sharedExports = exports.length > 1
+        ? [{
+            canvas: combinePageCanvases(exports.map(item => item.canvas)),
+            filename: currentCombinedFilename(),
+          }]
+        : exports;
+      for (const item of sharedExports) {
+        if (!item.blob) item.blob = await canvasToBlob(item.canvas);
+        if (!item.file) item.file = new File([item.blob], item.filename, { type: 'image/png' });
+      }
+      const files = sharedExports.map(item => item.file);
+      const shareData = { title: 'Invoice PNG', text: exports.length > 1 ? `인보이스 PNG ${exports.length}페이지 통합본` : '인보이스 PNG', files };
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files }))) {
         await navigator.share(shareData);
-        setToast({ type: 'ok', msg: files.length > 1 ? `${files.length}장 공유창을 열었습니다.` : '공유창을 열었습니다.' });
+        setToast({ type: 'ok', msg: exports.length > 1 ? `${exports.length}페이지를 한 장 PNG로 합쳐 공유창을 열었습니다.` : '공유창을 열었습니다.' });
       } else {
-        for (const item of exports) await saveBlob(item.blob, item.filename);
-        setToast({ type: 'ok', msg: files.length > 1 ? `공유 미지원 브라우저라 PNG ${files.length}장으로 저장했습니다.` : '공유 미지원 브라우저라 PNG로 저장했습니다.' });
+        for (const item of sharedExports) await saveBlob(item.blob, item.filename);
+        setToast({ type: 'ok', msg: exports.length > 1 ? `공유 미지원 브라우저라 ${exports.length}페이지를 한 장 PNG로 저장했습니다.` : '공유 미지원 브라우저라 PNG로 저장했습니다.' });
       }
     } catch (err) {
       if (err && err.name === 'AbortError') {
@@ -648,7 +682,7 @@ function App() {
       setBusy(false);
       setTimeout(() => setToast(null), 2400);
     }
-  }, [makePngBlob, data.date, tplId, invoicePages]);
+  }, [renderCanvas, data.date, tplId, invoicePages]);
 
   const TplComp = TEMPLATES.find(t => t.id === tplId).comp;
   const modalPreviewZoom = 0.6;
