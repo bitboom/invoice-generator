@@ -122,7 +122,8 @@ describe('privacy and repository hygiene', () => {
     assert.match(app, /복제/);
     assert.match(app, /이 브라우저에 자동 저장/);
     assert.match(index, /\.document-library/);
-    assert.match(index, /\.document-list/);
+    assert.match(index, /\.document-list\{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto/);
+    assert.match(index, /\.document-list-item\{flex:0 0 auto;/);
     assert.match(index, /\.document-list-item\.active/);
     assert.match(index, /\.new-document-btn/);
   });
