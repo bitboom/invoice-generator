@@ -229,30 +229,6 @@ const makeClassicPages = (totals) => {
   ];
 };
 
-const combinePageCanvases = (canvases) => {
-  if (!canvases.length) return null;
-  if (canvases.length === 1) return canvases[0];
-
-  const width = Math.max(...canvases.map(canvas => canvas.width));
-  const height = canvases.reduce((sum, canvas) => sum + canvas.height, 0);
-  const combinedCanvas = document.createElement('canvas');
-  combinedCanvas.width = width;
-  combinedCanvas.height = height;
-
-  const ctx = combinedCanvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, width, height);
-
-  let y = 0;
-  canvases.forEach(canvas => {
-    const x = Math.floor((width - canvas.width) / 2);
-    ctx.drawImage(canvas, x, y);
-    y += canvas.height;
-  });
-
-  return combinedCanvas;
-};
-
 function App() {
   const initialWorkspace = useMemo(loadWorkspace, []);
   const [documents, setDocuments] = useState(initialWorkspace.documents);
@@ -267,6 +243,7 @@ function App() {
   const [importText, setImportText] = useState('');
   const [backupCopyText, setBackupCopyText] = useState('');
   const exportRefs = useRef({});
+  const longShareRef = useRef(null);
   const logoInputRef = useRef(null);
   const stampInputRef = useRef(null);
 
@@ -592,22 +569,28 @@ function App() {
   };
 
   // Download as PNG
-  const renderCanvas = useCallback((node) => html2canvas(node, {
-    scale: EXPORT_SCALE,
-    backgroundColor: '#ffffff',
-    useCORS: true,
-    logging: false,
-    windowWidth: 794,
-    windowHeight: 1123,
-    width: 794,
-    height: 1123,
-    onclone: (doc) => {
-      doc.querySelectorAll('.invoice-frame').forEach(frame => {
-        frame.style.transform = 'none';
-        frame.style.position = 'static';
-      });
-    },
-  }), []);
+  const renderCanvas = useCallback((node) => {
+    const rect = node.getBoundingClientRect();
+    const width = Math.ceil(rect.width || node.scrollWidth || 794);
+    const height = Math.ceil(Math.max(rect.height || 0, node.scrollHeight || 0, 1123));
+
+    return html2canvas(node, {
+      scale: EXPORT_SCALE,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+      windowWidth: width,
+      windowHeight: height,
+      width,
+      height,
+      onclone: (doc) => {
+        doc.querySelectorAll('.invoice-frame').forEach(frame => {
+          frame.style.transform = 'none';
+          frame.style.position = 'static';
+        });
+      },
+    });
+  }, []);
 
   const canvasToBlob = (canvas) => new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -644,32 +627,30 @@ function App() {
     if (!nodes.length) return;
     setBusy(true);
     try {
-      const exports = [];
-      for (const [idx, node] of nodes.entries()) {
+      const exports = nodes.map((node, idx) => {
         const page = invoicePages[idx] || { pageNumber: idx + 1, totalPages: nodes.length };
-        const filename = currentFilename(page.pageNumber, page.totalPages);
-        const canvas = await renderCanvas(node);
-        const blob = await canvasToBlob(canvas);
-        exports.push({ canvas, blob, file: new File([blob], filename, { type: 'image/png' }), filename });
-      }
-      const sharedExports = exports.length > 1
-        ? [{
-            canvas: combinePageCanvases(exports.map(item => item.canvas)),
-            filename: currentCombinedFilename(),
-          }]
-        : exports;
-      for (const item of sharedExports) {
-        if (!item.blob) item.blob = await canvasToBlob(item.canvas);
-        if (!item.file) item.file = new File([item.blob], item.filename, { type: 'image/png' });
-      }
-      const files = sharedExports.map(item => item.file);
-      const shareData = { title: 'Invoice PNG', text: exports.length > 1 ? `인보이스 PNG ${exports.length}페이지 통합본` : '인보이스 PNG', files };
+        return {
+          node,
+          filename: currentFilename(page.pageNumber, page.totalPages),
+        };
+      });
+      const shareNode = exports.length > 1 ? longShareRef.current?.querySelector('.invoice') : nodes[0];
+      if (!shareNode) throw new Error('공유할 견적서를 준비하지 못했습니다. 다시 시도해 주세요.');
+
+      const canvas = await renderCanvas(shareNode);
+      const blob = await canvasToBlob(canvas);
+      const sharedExport = {
+        blob,
+        filename: exports.length > 1 ? currentCombinedFilename() : exports[0].filename,
+      };
+      const files = [new File([sharedExport.blob], sharedExport.filename, { type: 'image/png' })];
+      const shareData = { title: 'Invoice PNG', text: exports.length > 1 ? `인보이스 PNG ${exports.length}페이지 긴 견적서` : '인보이스 PNG', files };
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files }))) {
         await navigator.share(shareData);
-        setToast({ type: 'ok', msg: exports.length > 1 ? `${exports.length}페이지를 한 장 PNG로 합쳐 공유창을 열었습니다.` : '공유창을 열었습니다.' });
+        setToast({ type: 'ok', msg: exports.length > 1 ? `${exports.length}페이지를 한 장의 긴 견적서로 공유창을 열었습니다.` : '공유창을 열었습니다.' });
       } else {
-        for (const item of sharedExports) await saveBlob(item.blob, item.filename);
-        setToast({ type: 'ok', msg: exports.length > 1 ? `공유 미지원 브라우저라 ${exports.length}페이지를 한 장 PNG로 저장했습니다.` : '공유 미지원 브라우저라 PNG로 저장했습니다.' });
+        await saveBlob(sharedExport.blob, sharedExport.filename);
+        setToast({ type: 'ok', msg: exports.length > 1 ? `공유 미지원 브라우저라 ${exports.length}페이지를 한 장의 긴 견적서로 저장했습니다.` : '공유 미지원 브라우저라 PNG로 저장했습니다.' });
       }
     } catch (err) {
       if (err && err.name === 'AbortError') {
@@ -971,6 +952,11 @@ function App() {
             <TplComp data={data} totals={totals} {...page} />
           </div>
         ))}
+        {invoicePages.length > 1 && (
+          <div ref={longShareRef} className="export-frame export-long-frame">
+            <TplComp data={data} totals={totals} items={totals.items} pageNumber={1} totalPages={1} showTotals={true} showFooter={true} longShare={true} />
+          </div>
+        )}
       </div>
 
       {previewOpen && (

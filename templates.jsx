@@ -137,17 +137,20 @@ function ClassicTemplate({
   totalPages = 1,
   showTotals = true,
   showFooter = true,
+  longShare = false,
 }) {
   const { supply, tax, total } = totals;
   const items = pageItems || totals.items;
   const isContinuation = totalPages > 1 && pageNumber > 1;
-  const emptyCount = showTotals && items.length === 0 ? 0 : Math.max(0, 11 - items.length);
-  const rowHeight = isContinuation && items.length > 14
-    ? Math.max(20, Math.floor(600 / items.length))
-    : 38;
+  const emptyCount = longShare && items.length > 11 ? 0 : (showTotals && items.length === 0 ? 0 : Math.max(0, 11 - items.length));
+  const rowHeight = longShare
+    ? 38
+    : (isContinuation && items.length > 14
+      ? Math.max(20, Math.floor(600 / items.length))
+      : 38);
 
   return (
-    <div className={'invoice tpl-classic ' + (isContinuation ? 'tpl-classic-continuation ' : '') + (!showTotals ? 'tpl-classic-no-totals' : '')} style={{ ...themeVars(data), '--classic-row-height': `${rowHeight}px` }}>
+    <div className={'invoice tpl-classic ' + (longShare ? 'tpl-classic-long-share ' : '') + (isContinuation ? 'tpl-classic-continuation ' : '') + (!showTotals ? 'tpl-classic-no-totals' : '')} style={{ ...themeVars(data), '--classic-row-height': `${rowHeight}px` }}>
       <aside className="sidebar">
         <div className="sidebar-logo">
           <LogoMark data={data} onDark />
