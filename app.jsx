@@ -910,7 +910,7 @@ function App() {
             {data.items.map((it, idx) => (
               <div className="item-row" key={idx}>
                 <input type="text" value={it.name} onChange={e => setItem(idx, 'name', e.target.value)} placeholder="품명" />
-                <input type="number" value={it.unitPrice || ''} onChange={e => setItem(idx, 'unitPrice', e.target.value)} placeholder="0" />
+                <input type="number" step="1000" value={it.unitPrice || ''} onChange={e => setItem(idx, 'unitPrice', e.target.value)} placeholder="0" />
                 <input type="number" value={it.qty || ''} onChange={e => setItem(idx, 'qty', e.target.value)} placeholder="1" />
                 <input type="number" value={it.total || ''} onChange={e => setItem(idx, 'total', e.target.value)} placeholder="0" />
                 <div className="reorder-controls" aria-label={`${idx + 1}번째 품목 순서 변경`}>

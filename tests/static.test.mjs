@@ -376,6 +376,7 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /const calculateLineTotal = \(unitPrice, qty\) =>/);
     assert.match(app, /if \(key === 'unitPrice' \|\| key === 'qty'\)/);
     assert.match(app, /next\.total = calculateLineTotal\(next\.unitPrice, next\.qty\);/);
+    assert.match(app, /<input type="number" step="1000" value=\{it\.unitPrice \|\| ''\} onChange=\{e => setItem\(idx, 'unitPrice', e\.target\.value\)\} placeholder="0" \/>/);
     assert.match(app, /setItem\(idx, 'unitPrice', e\.target\.value\)/);
     assert.match(app, /setItem\(idx, 'qty', e\.target\.value\)/);
     assert.match(app, /setItem\(idx, 'total', e\.target\.value\)/);
