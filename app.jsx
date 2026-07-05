@@ -296,9 +296,21 @@ function App() {
     return { transform: `translate(${x}px, ${y}px) scale(${scale})` };
   };
   const resetMediaCrop = (kind) => setData(d => ({ ...d, [`${kind}Scale`]: 100, [`${kind}X`]: 0, [`${kind}Y`]: 0 }));
+  const calculateLineTotal = (unitPrice, qty) => {
+    const price = Number(unitPrice || 0);
+    const count = Number(qty || 0);
+    return price && count ? price * count : 0;
+  };
   const setItem = (idx, key, value) => setData(d => ({
     ...d,
-    items: d.items.map((it, i) => i === idx ? { ...it, [key]: value } : it),
+    items: d.items.map((it, i) => {
+      if (i !== idx) return it;
+      const next = { ...it, [key]: value };
+      if (key === 'unitPrice' || key === 'qty') {
+        next.total = calculateLineTotal(next.unitPrice, next.qty);
+      }
+      return next;
+    }),
   }));
   const addItem = () => setData(d => ({ ...d, items: [...d.items, { name: '', unitPrice: 0, qty: 1, total: 0 }]}));
   const removeItem = (idx) => setData(d => ({ ...d, items: d.items.length > 1 ? d.items.filter((_, i) => i !== idx) : [{ name: '', unitPrice: 0, qty: 1, total: 0 }] }));

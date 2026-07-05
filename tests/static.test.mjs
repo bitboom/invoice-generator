@@ -373,6 +373,9 @@ describe('shared logo, theme, and template behavior', () => {
     assert.match(app, /<span>부가세<\/span><strong>₩\{fmt\(totals\.tax\)\}<\/strong>/);
     assert.match(app, /<span>총액<\/span><strong>₩\{fmt\(totals\.total\)\}<\/strong>/);
     assert.match(app, /<span>품명<\/span><span>단가<\/span><span>수량<\/span><span>합계<\/span><span>순서<\/span><span><\/span>/);
+    assert.match(app, /const calculateLineTotal = \(unitPrice, qty\) =>/);
+    assert.match(app, /if \(key === 'unitPrice' \|\| key === 'qty'\)/);
+    assert.match(app, /next\.total = calculateLineTotal\(next\.unitPrice, next\.qty\);/);
     assert.match(app, /setItem\(idx, 'unitPrice', e\.target\.value\)/);
     assert.match(app, /setItem\(idx, 'qty', e\.target\.value\)/);
     assert.match(app, /setItem\(idx, 'total', e\.target\.value\)/);
