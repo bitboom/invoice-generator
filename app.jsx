@@ -885,9 +885,11 @@ function App() {
         <div className="section">
           <div className="section-title">
             품목
-            <span style={{color:'#9a9a96',fontWeight:500,textTransform:'none',letterSpacing:0}}>
-              합계 ₩{fmt(totals.supply)}
-            </span>
+          </div>
+          <div className="item-summary" aria-label="견적 합계 요약">
+            <div><span>합계</span><strong>₩{fmt(totals.supply)}</strong></div>
+            <div><span>부가세</span><strong>₩{fmt(totals.tax)}</strong></div>
+            <div><span>총액</span><strong>₩{fmt(totals.total)}</strong></div>
           </div>
           <div className="item-head">
             <span>품명</span><span>단가</span><span>수량</span><span>합계</span><span>순서</span><span></span>
